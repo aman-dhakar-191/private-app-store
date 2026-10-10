@@ -54,12 +54,39 @@ Add an entry to `catalog.json` and push to `main`. Friends see it on their next 
   "name": "My Notes",
   "package": "com.example.notes",
   "repo": "aman-dhakar-191/notes",
-  "description": "Simple notes app."
+  "description": "Simple notes app.",
+  "minSdk": 26
 }
 ```
 
+- `minSdk` (optional) is the app's `minSdk`. On phones with an older Android version the
+  store shows "Needs Android X+" instead of an Install button that would only fail.
+
 The app's repo must follow the rules in [docs/publishing-an-app.md](docs/publishing-an-app.md).
 That page also has a ready-made GitHub Actions workflow you can copy into each app's repo.
+
+### Pre-release apps
+
+Apps published only as GitHub **pre-releases** go in the `prereleaseApps` list instead. They
+appear in a separate **Pre-release** section at the bottom of the store.
+
+```json
+"prereleaseApps": [
+  {
+    "name": "Passkey Demo",
+    "package": "io.github.amandhakar.passkeydemo",
+    "repo": "aman-dhakar-191/passkey-provider-android",
+    "tagPrefix": "demo-v",
+    "minSdk": 34
+  }
+]
+```
+
+- `tagPrefix` picks this app's releases when a repo publishes several apps: the store takes
+  the highest version among releases whose tag starts with it (`demo-v1.0.2` → `1.0.2`),
+  pre-releases included.
+- Keep these out of `apps`. Store versions older than 0.2.0 only read `apps` and would use
+  the repo's latest normal release there, which may be a different app.
 
 ## Releasing the store itself
 
