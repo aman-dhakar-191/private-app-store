@@ -44,6 +44,9 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -93,7 +96,12 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refreshInstalled() }
+    // Re-checked on every resume, so the card disappears after coming back from Settings.
+    var installAllowed by remember { mutableStateOf(canInstall(context)) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        vm.refreshInstalled()
+        installAllowed = canInstall(context)
+    }
     LaunchedEffect(Unit) {
         Installer.results.collect { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -111,56 +119,77 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
             )
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            when {
-                state.loading && state.items.isEmpty() ->
-                    CircularProgressIndicator(Modifier.align(Alignment.Center))
-                state.error != null && state.items.isEmpty() ->
-                    Text(
-                        state.error!!,
-                        Modifier.align(Alignment.Center).padding(24.dp),
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                else -> LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    state.storeUpdate?.let { release ->
-                        item {
-                            StoreUpdateBanner(release, state.storeProgress, onUpdate = {
-                                if (canInstall(context)) vm.updateStore() else askInstallPermission(context)
-                            })
-                        }
-                    }
-                    state.error?.let { error ->
-                        item { Text(error, color = MaterialTheme.colorScheme.error) }
-                    }
-                    if (state.items.isEmpty() && !state.loading && state.error == null) {
-                        item { Text("No apps in the store yet.") }
-                    }
-                    val (prerelease, stable) = state.items.partition { it.app.prerelease }
-                    val onInstall = { item: AppItem ->
-                        if (canInstall(context)) vm.install(item) else askInstallPermission(context)
-                    }
-                    items(stable, key = { "stable:" + it.app.packageName }) { item ->
-                        AppCard(item, onInstall = { onInstall(item) })
-                    }
-                    if (prerelease.isNotEmpty()) {
-                        item(key = "prerelease-header") {
-                            Column(Modifier.padding(top = 12.dp)) {
-                                Text("Pre-release", style = MaterialTheme.typography.titleMedium)
-                                Text(
-                                    "Test builds. They may be unfinished or break.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                            }
-                        }
-                        items(prerelease, key = { "prerelease:" + it.app.packageName }) { item ->
-                            AppCard(item, onInstall = { onInstall(item) })
-                        }
+        // The banners always render, whatever state the app list is in.
+        LazyColumn(
+            Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (!installAllowed) {
+                item(key = "install-permission") {
+                    InstallPermissionCard(onAllow = { askInstallPermission(context) })
+                }
+            }
+            state.storeUpdate?.let { release ->
+                item(key = "store-update") {
+                    StoreUpdateBanner(release, state.storeProgress, onUpdate = {
+                        if (canInstall(context)) vm.updateStore() else askInstallPermission(context)
+                    })
+                }
+            }
+            if (state.loading && state.items.isEmpty()) {
+                item(key = "loading") {
+                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
                     }
                 }
             }
+            state.error?.let { error ->
+                item(key = "error") { Text(error, color = MaterialTheme.colorScheme.error) }
+            }
+            if (state.items.isEmpty() && !state.loading && state.error == null) {
+                item(key = "empty") { Text("No apps in the store yet.") }
+            }
+            val (prerelease, stable) = state.items.partition { it.app.prerelease }
+            val onInstall = { item: AppItem ->
+                if (canInstall(context)) vm.install(item) else askInstallPermission(context)
+            }
+            items(stable, key = { "stable:" + it.app.packageName }) { item ->
+                AppCard(item, onInstall = { onInstall(item) })
+            }
+            if (prerelease.isNotEmpty()) {
+                item(key = "prerelease-header") {
+                    Column(Modifier.padding(top = 12.dp)) {
+                        Text("Pre-release", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "Test builds. They may be unfinished or break.",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                items(prerelease, key = { "prerelease:" + it.app.packageName }) { item ->
+                    AppCard(item, onInstall = { onInstall(item) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun InstallPermissionCard(onAllow: () -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Allow installing apps", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Android asks you once to let App Store install apps. Turn on " +
+                    "\"Allow from this source\", then come back.",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Spacer(Modifier.height(12.dp))
+            Button(onClick = onAllow) { Text("Allow") }
         }
     }
 }
@@ -255,7 +284,7 @@ private fun canInstall(context: android.content.Context): Boolean =
     context.packageManager.canRequestPackageInstalls()
 
 private fun askInstallPermission(context: android.content.Context) {
-    Toast.makeText(context, "Allow App Store to install apps, then tap Install again", Toast.LENGTH_LONG).show()
+    Toast.makeText(context, "Turn on \"Allow from this source\", then come back", Toast.LENGTH_LONG).show()
     context.startActivity(
         Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${context.packageName}")),
     )

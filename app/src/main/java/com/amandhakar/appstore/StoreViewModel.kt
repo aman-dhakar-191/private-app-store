@@ -30,12 +30,18 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     fun refresh() {
         if (_state.value.loading) return
         _state.update { it.copy(loading = true, error = null) }
+        val context = getApplication<Application>()
         viewModelScope.launch {
+            // Store update first and on its own: it must show even when the app list fails.
             try {
-                val snapshot = Store.load(getApplication())
-                _state.update {
-                    it.copy(loading = false, items = snapshot.items, storeUpdate = snapshot.storeUpdate)
-                }
+                val update = Store.storeUpdate()
+                _state.update { it.copy(storeUpdate = update) }
+            } catch (e: Exception) {
+                // Keep the last known result; the app list below reports network problems.
+            }
+            try {
+                val items = Store.loadApps(context)
+                _state.update { it.copy(loading = false, items = items) }
             } catch (e: Exception) {
                 _state.update { it.copy(loading = false, error = e.message ?: e.toString()) }
             }
