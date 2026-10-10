@@ -2,6 +2,7 @@ package com.amandhakar.appstore
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -16,6 +17,10 @@ data class AppItem(
     val updateAvailable: Boolean
         get() = release != null && installedVersion != null &&
             compareVersions(release.version, installedVersion) > 0
+
+    /** False when this phone's Android version is older than the app needs. */
+    val compatible: Boolean
+        get() = Build.VERSION.SDK_INT >= app.minSdk
 }
 
 data class StoreSnapshot(
@@ -34,7 +39,7 @@ object Store {
         val catalog = GitHub.fetchCatalog(BuildConfig.CATALOG_URL)
             .filter { it.packageName != BuildConfig.APPLICATION_ID }
         val items = catalog.map { app ->
-            async { AppItem(app, GitHub.latestRelease(app.repo), installedVersion(context, app.packageName)) }
+            async { AppItem(app, GitHub.releaseFor(app), installedVersion(context, app.packageName)) }
         }.awaitAll()
         val storeUpdate = storeRelease.await()
             ?.takeIf { compareVersions(it.version, BuildConfig.VERSION_NAME) > 0 }
@@ -45,5 +50,22 @@ object Store {
         context.packageManager.getPackageInfo(packageName, 0).versionName ?: ""
     } catch (e: PackageManager.NameNotFoundException) {
         null
+    }
+
+    /** "14" for API 34, and so on; "API n" for levels this table doesn't know yet. */
+    fun androidVersionName(sdk: Int): String = when (sdk) {
+        26 -> "8.0"
+        27 -> "8.1"
+        28 -> "9"
+        29 -> "10"
+        30 -> "11"
+        31 -> "12"
+        32 -> "12L"
+        33 -> "13"
+        34 -> "14"
+        35 -> "15"
+        36 -> "16"
+        37 -> "17"
+        else -> "API $sdk"
     }
 }

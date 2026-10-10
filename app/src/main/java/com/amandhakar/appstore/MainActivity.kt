@@ -138,10 +138,26 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                     if (state.items.isEmpty() && !state.loading && state.error == null) {
                         item { Text("No apps in the store yet.") }
                     }
-                    items(state.items, key = { it.app.packageName }) { item ->
-                        AppCard(item, onInstall = {
-                            if (canInstall(context)) vm.install(item) else askInstallPermission(context)
-                        })
+                    val (prerelease, stable) = state.items.partition { it.app.prerelease }
+                    val onInstall = { item: AppItem ->
+                        if (canInstall(context)) vm.install(item) else askInstallPermission(context)
+                    }
+                    items(stable, key = { "stable:" + it.app.packageName }) { item ->
+                        AppCard(item, onInstall = { onInstall(item) })
+                    }
+                    if (prerelease.isNotEmpty()) {
+                        item(key = "prerelease-header") {
+                            Column(Modifier.padding(top = 12.dp)) {
+                                Text("Pre-release", style = MaterialTheme.typography.titleMedium)
+                                Text(
+                                    "Test builds. They may be unfinished or break.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
+                        items(prerelease, key = { "prerelease:" + it.app.packageName }) { item ->
+                            AppCard(item, onInstall = { onInstall(item) })
+                        }
                     }
                 }
             }
@@ -207,7 +223,13 @@ fun AppCard(item: AppItem, onInstall: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 val installed = item.installedVersion != null
                 if (item.release != null && (!installed || item.updateAvailable)) {
-                    Button(onClick = onInstall) { Text(if (installed) "Update" else "Install") }
+                    if (item.compatible) {
+                        Button(onClick = onInstall) { Text(if (installed) "Update" else "Install") }
+                    } else {
+                        Button(onClick = {}, enabled = false) {
+                            Text("Needs Android ${Store.androidVersionName(item.app.minSdk)}+")
+                        }
+                    }
                 }
                 if (installed && item.app.packageName != context.packageName) {
                     val launch = context.packageManager.getLaunchIntentForPackage(item.app.packageName)

@@ -4,7 +4,18 @@
       "name": "Passkey Vault",
       "package": "io.github.amandhakar.passkey",
       "repo": "aman-dhakar-191/passkey-provider-android",
-      "description": "Stores passkeys on your phone and signs you in to apps, browsers and desktop sites. Needs Android 14+."
+      "description": "Stores passkeys on your phone and signs you in to apps, browsers and desktop sites.",
+      "minSdk": 34
+    }
+  ],
+  "prereleaseApps": [
+    {
+      "name": "Passkey Demo",
+      "package": "io.github.amandhakar.passkeydemo",
+      "repo": "aman-dhakar-191/passkey-provider-android",
+      "tagPrefix": "demo-v",
+      "description": "Test app for trying passkeys the way other apps use them. Not Passkey Vault.",
+      "minSdk": 34
     }
   ]
 }

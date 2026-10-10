@@ -14,6 +14,14 @@ data class CatalogApp(
     val packageName: String,
     val repo: String,
     val description: String,
+    /** Lowest Android API level the app runs on (from "minSdk"); 0 when not given. */
+    val minSdk: Int = 0,
+    /**
+     * True for entries in "prereleaseApps": the app is published as GitHub pre-releases whose tags
+     * start with [tagPrefix], instead of as the repo's latest release.
+     */
+    val prerelease: Boolean = false,
+    val tagPrefix: String = "v",
 )
 
 /** The latest GitHub release of an app that has an APK attached. */
@@ -29,18 +37,30 @@ class GitHubException(message: String) : IOException(message)
 
 object GitHub {
 
+    /**
+     * Reads both lists of catalog.json. Pre-release apps live in their own "prereleaseApps" list so
+     * older store versions, which only read "apps", never see them.
+     */
     suspend fun fetchCatalog(url: String): List<CatalogApp> = withContext(Dispatchers.IO) {
-        val apps = JSONObject(get(url)).getJSONArray("apps")
-        (0 until apps.length()).map { i ->
-            val app = apps.getJSONObject(i)
+        val json = JSONObject(get(url))
+        json.catalogList("apps", prerelease = false) + json.catalogList("prereleaseApps", prerelease = true)
+    }
+
+    private fun JSONObject.catalogList(key: String, prerelease: Boolean): List<CatalogApp> =
+        (optJSONArray(key) ?: JSONArray()).objects().map { app ->
             CatalogApp(
                 name = app.getString("name"),
                 packageName = app.getString("package"),
                 repo = app.getString("repo"),
                 description = app.optString("description"),
+                minSdk = app.optInt("minSdk", 0),
+                prerelease = prerelease,
+                tagPrefix = app.optString("tagPrefix").ifEmpty { "v" },
             )
         }
-    }
+
+    suspend fun releaseFor(app: CatalogApp): Release? =
+        if (app.prerelease) latestTaggedRelease(app.repo, app.tagPrefix) else latestRelease(app.repo)
 
     /** Returns null when the repo has no release, or its latest release has no .apk asset. */
     suspend fun latestRelease(repo: String): Release? = withContext(Dispatchers.IO) {
@@ -50,15 +70,29 @@ object GitHub {
             if (e.message?.startsWith("404") == true) return@withContext null
             throw e
         }
-        val json = JSONObject(body)
-        val apk = json.getJSONArray("assets").objects()
+        JSONObject(body).toRelease("v")
+    }
+
+    /**
+     * The highest version among the repo's recent releases (pre-releases included) whose tag starts
+     * with [prefix] and that has an .apk attached.
+     */
+    suspend fun latestTaggedRelease(repo: String, prefix: String): Release? = withContext(Dispatchers.IO) {
+        JSONArray(get("https://api.github.com/repos/$repo/releases?per_page=50")).objects()
+            .filter { !it.optBoolean("draft") && it.getString("tag_name").startsWith(prefix) }
+            .mapNotNull { it.toRelease(prefix) }
+            .maxWithOrNull { a, b -> compareVersions(a.version, b.version) }
+    }
+
+    private fun JSONObject.toRelease(prefix: String): Release? {
+        val apk = getJSONArray("assets").objects()
             .firstOrNull { it.getString("name").endsWith(".apk", ignoreCase = true) }
-            ?: return@withContext null
-        val tag = json.getString("tag_name")
-        Release(
+            ?: return null
+        val tag = getString("tag_name")
+        return Release(
             tag = tag,
-            version = tag.removePrefix("v"),
-            notes = json.optString("body"),
+            version = tag.removePrefix(prefix).removePrefix("v"),
+            notes = optString("body"),
             apkUrl = apk.getString("browser_download_url"),
             apkSize = apk.optLong("size"),
         )
