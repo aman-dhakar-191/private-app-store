@@ -25,6 +25,8 @@ android {
             "CATALOG_URL",
             "\"https://raw.githubusercontent.com/aman-dhakar-191/private-app-store/main/catalog.json\"",
         )
+        // Where the store looks for new versions of itself.
+        buildConfigField("String", "STORE_REPO", "\"aman-dhakar-191/private-app-store\"")
     }
 
     signingConfigs {

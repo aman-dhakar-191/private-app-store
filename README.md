@@ -14,7 +14,14 @@ every app is a GitHub repo, every version is a release with an `.apk` attached.
 5. Install downloads the APK and hands it to Android's package installer, which shows
    the normal system confirmation.
 
-The store lists itself in the catalog, so it updates itself like any other app.
+### Store updates
+
+On every launch and refresh, the store also checks this repo's latest release. If its
+tag is newer than the installed store, a **Store update available** banner appears at
+the top with the release notes and an **Update store** button. Android closes the
+store while it installs the new version; open it again afterwards.
+
+The store does not need to be in `catalog.json` for this.
 
 ## Installing the store (first time)
 

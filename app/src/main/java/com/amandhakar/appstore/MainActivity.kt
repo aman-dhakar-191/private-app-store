@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
@@ -109,8 +110,18 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    state.storeUpdate?.let { release ->
+                        item {
+                            StoreUpdateBanner(release, state.storeProgress, onUpdate = {
+                                if (canInstall(context)) vm.updateStore() else askInstallPermission(context)
+                            })
+                        }
+                    }
                     state.error?.let { error ->
                         item { Text(error, color = MaterialTheme.colorScheme.error) }
+                    }
+                    if (state.items.isEmpty() && !state.loading && state.error == null) {
+                        item { Text("No apps in the store yet.") }
                     }
                     items(state.items, key = { it.app.packageName }) { item ->
                         AppCard(item, onInstall = {
@@ -118,6 +129,36 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                         })
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun StoreUpdateBanner(release: Release, progress: Float?, onUpdate: () -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Store update available", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Version ${release.version} (you have ${BuildConfig.VERSION_NAME})",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            if (release.notes.isNotBlank()) {
+                Text(
+                    release.notes,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            if (progress != null) {
+                LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+            } else {
+                Button(onClick = onUpdate) { Text("Update store") }
             }
         }
     }

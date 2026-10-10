@@ -4,8 +4,10 @@ import android.app.Application
 import android.content.pm.PackageManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -27,6 +29,10 @@ data class StoreState(
     val loading: Boolean = false,
     val items: List<AppItem> = emptyList(),
     val error: String? = null,
+    /** A newer release of the store itself, if there is one. */
+    val storeUpdate: Release? = null,
+    /** Download progress of the store update, null when not downloading. */
+    val storeProgress: Float? = null,
 )
 
 class StoreViewModel(application: Application) : AndroidViewModel(application) {
@@ -43,15 +49,26 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             try {
-                val catalog = GitHub.fetchCatalog(BuildConfig.CATALOG_URL)
-                val items = catalog.map { app ->
-                    async { AppItem(app, GitHub.latestRelease(app.repo), installedVersion(app.packageName)) }
-                }.awaitAll()
-                _state.update { it.copy(loading = false, items = items) }
+                // coroutineScope makes a failed request throw here instead of crashing the app.
+                val (items, storeUpdate) = coroutineScope { loadStore() }
+                _state.update { it.copy(loading = false, items = items, storeUpdate = storeUpdate) }
             } catch (e: Exception) {
                 _state.update { it.copy(loading = false, error = e.message ?: e.toString()) }
             }
         }
+    }
+
+    private suspend fun CoroutineScope.loadStore(): Pair<List<AppItem>, Release?> {
+        val storeRelease = async { GitHub.latestRelease(BuildConfig.STORE_REPO) }
+        // The store is updated through its own banner, so it is not listed with the other apps.
+        val catalog = GitHub.fetchCatalog(BuildConfig.CATALOG_URL)
+            .filter { it.packageName != BuildConfig.APPLICATION_ID }
+        val items = catalog.map { app ->
+            async { AppItem(app, GitHub.latestRelease(app.repo), installedVersion(app.packageName)) }
+        }.awaitAll()
+        val storeUpdate = storeRelease.await()
+            ?.takeIf { compareVersions(it.version, BuildConfig.VERSION_NAME) > 0 }
+        return items to storeUpdate
     }
 
     /** Re-reads installed versions only; cheap, so it runs whenever the screen resumes. */
@@ -64,16 +81,27 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     fun install(item: AppItem) {
         val release = item.release ?: return
         if (item.progress != null) return
+        downloadAndInstall(release) { p -> setProgress(item, p) }
+    }
+
+    /** Updates the store itself. Android closes the store while it installs the new version. */
+    fun updateStore() {
+        val release = _state.value.storeUpdate ?: return
+        if (_state.value.storeProgress != null) return
+        downloadAndInstall(release) { p -> _state.update { it.copy(storeProgress = p) } }
+    }
+
+    private fun downloadAndInstall(release: Release, setProgress: (Float?) -> Unit) {
         val context = getApplication<Application>()
         viewModelScope.launch {
-            setProgress(item, 0f)
+            setProgress(0f)
             try {
-                val apk = Installer.download(context, release.apkUrl) { p -> setProgress(item, p) }
+                val apk = Installer.download(context, release.apkUrl) { p -> setProgress(p) }
                 Installer.install(context, apk)
             } catch (e: Exception) {
                 Installer.report("Download failed: ${e.message}")
             } finally {
-                setProgress(item, null)
+                setProgress(null)
             }
         }
     }
