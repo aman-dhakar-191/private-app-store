@@ -1,0 +1,10 @@
+{
+  "apps": [
+    {
+      "name": "App Store",
+      "package": "com.amandhakar.appstore",
+      "repo": "aman-dhakar-191/private-app-store",
+      "description": "This store. Install it once and it keeps itself up to date."
+    }
+  ]
+}
