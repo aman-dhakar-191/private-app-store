@@ -6,6 +6,13 @@
       "repo": "aman-dhakar-191/passkey-provider-android",
       "description": "Stores passkeys on your phone and signs you in to apps, browsers and desktop sites.",
       "minSdk": 34
+    },
+    {
+      "name": "Mindscroll",
+      "package": "io.github.amandhakar.mindscroll",
+      "repo": "aman-dhakar-191/Mindscroll",
+      "description": "Counts the reels and shorts you swipe through each day in Instagram, YouTube and Facebook, and keeps the number in your status bar, around the camera and on a widget.",
+      "minSdk": 26
     }
   ],
   "prereleaseApps": [
