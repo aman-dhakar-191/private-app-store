@@ -27,16 +27,24 @@ import java.util.concurrent.TimeUnit
 class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
-        val snapshot = try {
-            Store.load(applicationContext)
+        // Checked separately, so a failing catalog doesn't hide a store update and vice versa.
+        var failed = false
+        val storeUpdate = try {
+            Store.storeUpdate()
         } catch (e: Exception) {
-            // Offline or rate limited; the next periodic run will try again.
-            return Result.success()
+            failed = true
+            null
+        }
+        val apps = try {
+            Store.loadApps(applicationContext)
+        } catch (e: Exception) {
+            failed = true
+            emptyList()
         }
 
         val updates = buildList {
-            snapshot.storeUpdate?.let { add(Update(applicationContext.getString(R.string.app_name), BuildConfig.APPLICATION_ID, it.version)) }
-            snapshot.items.filter { it.updateAvailable }.forEach {
+            storeUpdate?.let { add(Update(applicationContext.getString(R.string.app_name), BuildConfig.APPLICATION_ID, it.version)) }
+            apps.filter { it.updateAvailable }.forEach {
                 add(Update(it.app.name, it.app.packageName, it.release!!.version))
             }
         }
@@ -44,10 +52,20 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         val prefs = applicationContext.getSharedPreferences("updates", Context.MODE_PRIVATE)
         val keys = updates.map { "${it.packageName}@${it.version}" }.toSet()
         val alreadyNotified = prefs.getStringSet(KEY_NOTIFIED, emptySet())!!
+
+        if (failed) {
+            // Offline or rate limited: only add what we did find, never forget or clear anything,
+            // since a missing result here doesn't mean the update is gone.
+            if (!alreadyNotified.containsAll(keys)) {
+                notify(updates)
+                prefs.edit().putStringSet(KEY_NOTIFIED, alreadyNotified + keys).apply()
+            }
+            return Result.success()
+        }
+
         // Remember only current updates, so a version that gets installed and later
         // updated again is notified about once more.
         prefs.edit().putStringSet(KEY_NOTIFIED, keys).apply()
-
         if (updates.isEmpty()) {
             NotificationManagerCompat.from(applicationContext).cancel(NOTIFICATION_ID)
         } else if (!alreadyNotified.containsAll(keys)) {

@@ -16,7 +16,9 @@ every app is a GitHub repo, every version is a release with an `.apk` attached.
 
 ### Store updates
 
-On every launch and refresh, the store also checks this repo's latest release. If its
+On every launch and refresh, the store also checks this repo's latest release. This check
+is separate from loading the app list, so a broken catalog or app repo never hides a store
+update. If its
 tag is newer than the installed store, a **Store update available** banner appears at
 the top with the release notes and an **Update store** button. Android closes the
 store while it installs the new version; open it again afterwards.
@@ -40,8 +42,9 @@ opened in a long time.
 1. Open the latest release: <https://github.com/aman-dhakar-191/private-app-store/releases/latest>
 2. Download the `.apk` on your phone and open it. Android will ask you to allow
    installing from your browser; allow it.
-3. Open **App Store**. The first time you tap Install, it sends you to settings to allow
-   the store to install apps.
+3. Open **App Store**. Until it's allowed to install apps, an **Allow installing apps** card
+   sits at the top: tap **Allow**, turn on *Allow from this source*, and go back. Android
+   doesn't let apps switch this on themselves.
 
 Send your friends the same link.
 

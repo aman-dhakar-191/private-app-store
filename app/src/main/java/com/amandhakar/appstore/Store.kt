@@ -23,28 +23,28 @@ data class AppItem(
         get() = Build.VERSION.SDK_INT >= app.minSdk
 }
 
-data class StoreSnapshot(
-    val items: List<AppItem>,
-    /** A newer release of the store itself, if there is one. */
-    val storeUpdate: Release?,
-)
-
 /** Loading logic shared by the screen and the background update check. */
 object Store {
 
-    suspend fun load(context: Context): StoreSnapshot = coroutineScope {
-        // Inside coroutineScope, a failed request throws to the caller instead of crashing the app.
-        val storeRelease = async { GitHub.latestRelease(BuildConfig.STORE_REPO) }
+    /**
+     * The catalog apps with their latest releases. Inside coroutineScope, a failed request throws
+     * to the caller instead of crashing the app.
+     */
+    suspend fun loadApps(context: Context): List<AppItem> = coroutineScope {
         // The store is updated through its own banner, so it is not listed with the other apps.
         val catalog = GitHub.fetchCatalog(BuildConfig.CATALOG_URL)
             .filter { it.packageName != BuildConfig.APPLICATION_ID }
-        val items = catalog.map { app ->
+        catalog.map { app ->
             async { AppItem(app, GitHub.releaseFor(app), installedVersion(context, app.packageName)) }
         }.awaitAll()
-        val storeUpdate = storeRelease.await()
-            ?.takeIf { compareVersions(it.version, BuildConfig.VERSION_NAME) > 0 }
-        StoreSnapshot(items, storeUpdate)
     }
+
+    /**
+     * A newer release of the store itself, or null. Checked separately from [loadApps], so a broken
+     * catalog or app repo never hides a store update (which may be the fix).
+     */
+    suspend fun storeUpdate(): Release? = GitHub.latestRelease(BuildConfig.STORE_REPO)
+        ?.takeIf { compareVersions(it.version, BuildConfig.VERSION_NAME) > 0 }
 
     fun installedVersion(context: Context, packageName: String): String? = try {
         context.packageManager.getPackageInfo(packageName, 0).versionName ?: ""
