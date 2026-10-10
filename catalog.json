@@ -1,3 +1,10 @@
 {
-  "apps": []
+  "apps": [
+    {
+      "name": "Passkey Vault",
+      "package": "io.github.amandhakar.passkey",
+      "repo": "aman-dhakar-191/passkey-provider-android",
+      "description": "Stores passkeys on your phone and signs you in to apps, browsers and desktop sites. Needs Android 14+."
+    }
+  ]
 }
