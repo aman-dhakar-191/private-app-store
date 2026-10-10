@@ -1,6 +1,8 @@
 package com.amandhakar.appstore
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -9,6 +11,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,7 +58,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        UpdateWorker.schedule(this)
+        askNotificationPermission()
         setContent { StoreTheme { StoreScreen() } }
+    }
+
+    /** Needed on Android 13+ for the background update notifications. Android asks only once. */
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+                .launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 }
 

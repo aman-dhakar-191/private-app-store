@@ -3,6 +3,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- Lets the store see which launchable apps are installed (and their versions)
          without needing QUERY_ALL_PACKAGES. -->

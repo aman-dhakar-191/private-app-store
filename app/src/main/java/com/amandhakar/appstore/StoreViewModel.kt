@@ -1,29 +1,12 @@
 package com.amandhakar.appstore
 
 import android.app.Application
-import android.content.pm.PackageManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-
-data class AppItem(
-    val app: CatalogApp,
-    val release: Release?,
-    val installedVersion: String?,
-    /** Download progress 0..1 while downloading, null otherwise. */
-    val progress: Float? = null,
-) {
-    val updateAvailable: Boolean
-        get() = release != null && installedVersion != null &&
-            compareVersions(release.version, installedVersion) > 0
-}
 
 data class StoreState(
     val loading: Boolean = false,
@@ -49,32 +32,21 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             try {
-                // coroutineScope makes a failed request throw here instead of crashing the app.
-                val (items, storeUpdate) = coroutineScope { loadStore() }
-                _state.update { it.copy(loading = false, items = items, storeUpdate = storeUpdate) }
+                val snapshot = Store.load(getApplication())
+                _state.update {
+                    it.copy(loading = false, items = snapshot.items, storeUpdate = snapshot.storeUpdate)
+                }
             } catch (e: Exception) {
                 _state.update { it.copy(loading = false, error = e.message ?: e.toString()) }
             }
         }
     }
 
-    private suspend fun CoroutineScope.loadStore(): Pair<List<AppItem>, Release?> {
-        val storeRelease = async { GitHub.latestRelease(BuildConfig.STORE_REPO) }
-        // The store is updated through its own banner, so it is not listed with the other apps.
-        val catalog = GitHub.fetchCatalog(BuildConfig.CATALOG_URL)
-            .filter { it.packageName != BuildConfig.APPLICATION_ID }
-        val items = catalog.map { app ->
-            async { AppItem(app, GitHub.latestRelease(app.repo), installedVersion(app.packageName)) }
-        }.awaitAll()
-        val storeUpdate = storeRelease.await()
-            ?.takeIf { compareVersions(it.version, BuildConfig.VERSION_NAME) > 0 }
-        return items to storeUpdate
-    }
-
     /** Re-reads installed versions only; cheap, so it runs whenever the screen resumes. */
     fun refreshInstalled() {
+        val context = getApplication<Application>()
         _state.update { s ->
-            s.copy(items = s.items.map { it.copy(installedVersion = installedVersion(it.app.packageName)) })
+            s.copy(items = s.items.map { it.copy(installedVersion = Store.installedVersion(context, it.app.packageName)) })
         }
     }
 
@@ -110,11 +82,5 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { s ->
             s.copy(items = s.items.map { if (it.app == item.app) it.copy(progress = progress) else it })
         }
-    }
-
-    private fun installedVersion(packageName: String): String? = try {
-        getApplication<Application>().packageManager.getPackageInfo(packageName, 0).versionName ?: ""
-    } catch (e: PackageManager.NameNotFoundException) {
-        null
     }
 }
