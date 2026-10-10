@@ -23,6 +23,18 @@ store while it installs the new version; open it again afterwards.
 
 The store does not need to be in `catalog.json` for this.
 
+### Background update notifications
+
+About every 6 hours (when the phone is online), the store checks in the background for
+updates to the store and to any installed app. If it finds a version it hasn't told you
+about yet, it posts one notification listing them; tapping it opens the store. The same
+update is not notified twice.
+
+On Android 13+ the store asks for notification permission on first launch. If you
+decline, the check still runs but stays silent; you can turn it on later in the phone's
+app settings. Android may delay the check on battery saver or if the store hasn't been
+opened in a long time.
+
 ## Installing the store (first time)
 
 1. Open the latest release: <https://github.com/aman-dhakar-191/private-app-store/releases/latest>
@@ -91,7 +103,8 @@ as a workflow artifact only.
   repos. Supporting private repos would mean putting a GitHub token on every friend's
   phone.
 - **GitHub rate limit:** 60 API calls per hour per network without a login. One refresh
-  uses one call per app, which is plenty for a handful of apps.
+  (or background check) uses one call per app plus one for the store, which is plenty
+  for a handful of apps.
 - **Only launchable apps** are detected as installed (apps with a launcher icon).
 
 ## Building locally
