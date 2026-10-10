@@ -88,14 +88,23 @@ Back up `release.jks` and its passwords somewhere safe. Never commit it.
 
 ### Each release
 
-```sh
-git tag v0.1.0
-git push origin v0.1.0
-```
+1. Go to **Actions → Release → Run workflow** (works from the phone too).
+2. Pick what to increase:
+   - **patch** for fixes: `1.4.2` → `1.4.3`
+   - **minor** for new features: `1.4.2` → `1.5.0`
+   - **major** for big changes: `1.4.2` → `2.0.0`
+3. Optionally write what changed, then **Run workflow**.
 
-The [Android workflow](.github/workflows/android.yml) builds a signed APK and publishes a
-GitHub release with it attached. Builds on pull requests and `main` produce a test APK
-as a workflow artifact only.
+It finds the latest `vX.Y.Z` tag, builds the APK signed with your key, and publishes the
+GitHub release (creating the tag). The first release starts from `0.0.0`, so pick **minor**
+to get `0.1.0`. A few minutes later, the store shows the update banner and phones get the
+update notification.
+
+`versionCode` is derived from the version (`major × 1000000 + minor × 1000 + patch`), so it
+always goes up with the version. Minor and patch must stay below 1000.
+
+Builds on pull requests and `main` (the [Android workflow](.github/workflows/android.yml))
+are only test builds: not signed with your key, and kept as a workflow artifact.
 
 ## Limits
 
