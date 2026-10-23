@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # to start the Release index workflow
 
 concurrency:
   group: release
@@ -87,6 +88,13 @@ jobs:
           generate_release_notes: true
           files: dist/*.apk
           fail_on_unmatched_files: true
+
+      # Releases made with the workflow token don't trigger other workflows, so refresh the
+      # index (which phones read the store update from) explicitly.
+      - name: Refresh the release index
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run index.yml --repo "$GITHUB_REPOSITORY" --ref main
 
       - name: Summary
         run: |

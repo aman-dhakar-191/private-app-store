@@ -30,13 +30,14 @@ class UpdateWorker(context: Context, params: WorkerParameters) : CoroutineWorker
         // Checked separately, so a failing catalog doesn't hide a store update and vice versa.
         var failed = false
         val storeUpdate = try {
-            Store.storeUpdate()
+            Store.storeUpdate(applicationContext)
         } catch (e: Exception) {
             failed = true
             null
         }
         val apps = try {
-            Store.loadApps(applicationContext)
+            // Saved or partly checked data can miss updates, so it counts as a failed check.
+            Store.loadApps(applicationContext).also { if (it.notice != null) failed = true }.items
         } catch (e: Exception) {
             failed = true
             emptyList()

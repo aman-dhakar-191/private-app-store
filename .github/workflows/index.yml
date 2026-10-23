@@ -1,0 +1,60 @@
+name: Release index
+
+# Writes index.json (every app's latest release, plus the store's own) and publishes it on the
+# `index` branch. The store app reads that one file instead of calling the GitHub API per app,
+# so phones don't run into the API's 60-requests-per-hour limit. See README "How it works".
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  push:
+    branches: [main]
+    paths: [catalog.json, scripts/build-index.py, .github/workflows/index.yml]
+  # Run by the store's Release workflow, by hand, or by an app's release (see README).
+  workflow_dispatch:
+  repository_dispatch:
+    types: [app-released]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: index
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Build index.json
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/build-index.py catalog.json "$GITHUB_REPOSITORY" > "$RUNNER_TEMP/index.json"
+
+      # The branch holds one commit with one file, replaced only when the content changes.
+      - name: Publish to the index branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if git fetch -q origin index 2>/dev/null && git show origin/index:index.json > "$RUNNER_TEMP/old.json" 2>/dev/null \
+             && cmp -s "$RUNNER_TEMP/old.json" "$RUNNER_TEMP/index.json"; then
+            echo "index.json unchanged"
+            exit 0
+          fi
+          out="$(mktemp -d)"
+          cp "$RUNNER_TEMP/index.json" "$out/"
+          cd "$out"
+          git init -q -b index
+          git add index.json
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Update release index"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" index
+          echo "Published index.json:"
+          cat index.json

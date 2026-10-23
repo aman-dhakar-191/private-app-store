@@ -1,5 +1,6 @@
 package com.amandhakar.appstore
 
+import android.content.SharedPreferences
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -35,16 +36,65 @@ data class Release(
 
 class GitHubException(message: String) : IOException(message)
 
+/**
+ * index.json from the `index` branch: every catalog app's latest release, written by the
+ * "Release index" workflow so phones don't call the GitHub API once per app.
+ */
+data class ReleaseIndex(val store: Release?, val releases: Map<String, Release?>) {
+    /** True when the index lists this app (its release may still be null: no release yet). */
+    fun has(app: CatalogApp): Boolean = releases.containsKey(indexKey(app))
+    fun release(app: CatalogApp): Release? = releases[indexKey(app)]
+}
+
+/** Must match index_key() in scripts/build-index.py. */
+fun indexKey(app: CatalogApp): String = if (app.prerelease) "${app.repo}#${app.tagPrefix}" else app.repo
+
+/** A downloaded file, or the copy saved last time with the reason the download failed. */
+data class Fetched(val body: String, val error: String?)
+
 object GitHub {
+
+    /**
+     * Downloads [url] and saves the body in [saved]. When the download fails, returns the copy saved
+     * last time instead, with the error, so the store can still show its list offline or when
+     * rate limited. Throws only when there is no saved copy either.
+     */
+    suspend fun fetchSaved(saved: SharedPreferences, url: String): Fetched = withContext(Dispatchers.IO) {
+        try {
+            val body = get(url)
+            saved.edit().putString(url, body).apply()
+            Fetched(body, null)
+        } catch (e: IOException) {
+            val old = saved.getString(url, null) ?: throw e
+            Fetched(old, e.message ?: e.toString())
+        }
+    }
 
     /**
      * Reads both lists of catalog.json. Pre-release apps live in their own "prereleaseApps" list so
      * older store versions, which only read "apps", never see them.
      */
-    suspend fun fetchCatalog(url: String): List<CatalogApp> = withContext(Dispatchers.IO) {
-        val json = JSONObject(get(url))
-        json.catalogList("apps", prerelease = false) + json.catalogList("prereleaseApps", prerelease = true)
+    fun parseCatalog(body: String): List<CatalogApp> {
+        val json = JSONObject(body)
+        return json.catalogList("apps", prerelease = false) + json.catalogList("prereleaseApps", prerelease = true)
     }
+
+    fun parseIndex(body: String): ReleaseIndex {
+        val json = JSONObject(body)
+        val releases = json.getJSONObject("releases")
+        return ReleaseIndex(
+            store = json.optJSONObject("store")?.toIndexedRelease(),
+            releases = releases.keys().asSequence().associateWith { releases.optJSONObject(it)?.toIndexedRelease() },
+        )
+    }
+
+    private fun JSONObject.toIndexedRelease() = Release(
+        tag = getString("tag"),
+        version = getString("version"),
+        notes = optString("notes"),
+        apkUrl = getString("apkUrl"),
+        apkSize = optLong("apkSize"),
+    )
 
     private fun JSONObject.catalogList(key: String, prerelease: Boolean): List<CatalogApp> =
         (optJSONArray(key) ?: JSONArray()).objects().map { app ->

@@ -87,3 +87,26 @@ git tag v1.0.0 && git push origin v1.0.0
 
 Using `github.run_number` as `versionCode` keeps it increasing as long as you don't
 rename or delete the workflow.
+
+## Showing a new release right away (optional)
+
+The store learns about releases from its release index, which refreshes every 15 minutes.
+To refresh it the moment an app is released, give the app's repo a token that can start
+workflows in the store repo:
+
+1. Create a fine-grained personal access token with access to `private-app-store` only and
+   the **Contents: Read and write** permission (needed to send a `repository_dispatch`).
+2. Add it to the app's repo as the secret `STORE_DISPATCH_TOKEN`.
+3. Add this step at the end of the app's release workflow:
+
+```yaml
+      - name: Tell the store about the release
+        if: env.STORE_DISPATCH_TOKEN != ''
+        env:
+          STORE_DISPATCH_TOKEN: ${{ secrets.STORE_DISPATCH_TOKEN }}
+          GH_TOKEN: ${{ secrets.STORE_DISPATCH_TOKEN }}
+        run: gh api repos/aman-dhakar-191/private-app-store/dispatches -f event_type=app-released
+```
+
+Without it, the release still shows up after the next scheduled run.
+
