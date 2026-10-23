@@ -6,12 +6,18 @@ every app is a GitHub repo, every version is a release with an `.apk` attached.
 ## How it works
 
 1. [`catalog.json`](catalog.json) lists the apps in the store (name, package name, repo).
-2. The store app reads that file from this repo's `main` branch.
-3. For each app it asks the GitHub API for the repo's **latest release** and takes the
-   first `.apk` asset.
-4. It compares the release tag (`v1.2.0` → `1.2.0`) with the installed app's
+2. The **Release index** workflow ([`index.yml`](.github/workflows/index.yml)) looks up each
+   app's **latest release** (first `.apk` asset) and the store's own, and publishes them as
+   `index.json` on the `index` branch. It runs every 15 minutes, when `catalog.json` changes,
+   after each store release, and on demand.
+3. The store app reads `catalog.json` and `index.json` from raw.githubusercontent.com: two
+   requests per refresh, neither counted against the GitHub API limit. Only an app the index
+   doesn't list yet (just added to the catalog) is looked up through the GitHub API directly.
+4. It keeps the last copy of both files it downloaded. When a refresh fails (offline, rate
+   limited), it shows the saved list with a note instead of an empty screen.
+5. It compares the release tag (`v1.2.0` → `1.2.0`) with the installed app's
    `versionName`, and shows **Install**, **Update** or **Open**.
-5. Install downloads the APK and hands it to Android's package installer, which shows
+6. Install downloads the APK and hands it to Android's package installer, which shows
    the normal system confirmation.
 
 ### Store updates
@@ -141,9 +147,16 @@ are only test builds: not signed with your key, and kept as a workflow artifact.
 - **Public repos only.** The store calls GitHub without a login, so it can't see private
   repos. Supporting private repos would mean putting a GitHub token on every friend's
   phone.
-- **GitHub rate limit:** 60 API calls per hour per network without a login. One refresh
-  (or background check) uses one call per app plus one for the store, which is plenty
-  for a handful of apps.
+- **New releases take up to ~20 minutes to show:** up to 15 minutes until the index
+  workflow's next run (GitHub sometimes runs scheduled workflows late), plus a few minutes
+  of caching on raw.githubusercontent.com. An app's release can refresh the index at once:
+  see [docs/publishing-an-app.md](docs/publishing-an-app.md).
+- **GitHub rate limit:** the API allows 60 calls per hour per network without a login, and
+  phones on mobile data often share one network address with many others. Store versions
+  before the release index used one call per app on every refresh and could hit it; now
+  only apps missing from the index use the API.
+- **Scheduled workflows pause** after 60 days without activity in a public repo. If the
+  index stops updating, run **Actions → Release index → Run workflow** (or push anything).
 - **Only launchable apps** are detected as installed (apps with a launcher icon).
 
 ## Building locally

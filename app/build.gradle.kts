@@ -25,6 +25,12 @@ android {
             "CATALOG_URL",
             "\"https://raw.githubusercontent.com/aman-dhakar-191/private-app-store/main/catalog.json\"",
         )
+        // Latest release of every app and of the store, written by the "Release index" workflow.
+        buildConfigField(
+            "String",
+            "INDEX_URL",
+            "\"https://raw.githubusercontent.com/aman-dhakar-191/private-app-store/index/index.json\"",
+        )
         // Where the store looks for new versions of itself.
         buildConfigField("String", "STORE_REPO", "\"aman-dhakar-191/private-app-store\"")
     }
