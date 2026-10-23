@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,8 +24,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -109,6 +114,18 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
         }
     }
 
+    val onInstall = { item: AppItem ->
+        if (canInstall(context)) vm.install(item) else askInstallPermission(context)
+    }
+
+    // An app's page replaces the list while it is open; Back returns to the list.
+    val open = state.openApp?.let { pkg -> state.items.firstOrNull { it.app.packageName == pkg } }
+    if (open != null) {
+        BackHandler(onBack = vm::closeApp)
+        AppPage(open, state.appChecks[open.app.packageName], onBack = vm::closeApp, onInstall = { onInstall(open) })
+        return
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -151,11 +168,8 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                 item(key = "empty") { Text("No apps in the store yet.") }
             }
             val (prerelease, stable) = state.items.partition { it.app.prerelease }
-            val onInstall = { item: AppItem ->
-                if (canInstall(context)) vm.install(item) else askInstallPermission(context)
-            }
             items(stable, key = { "stable:" + it.app.packageName }) { item ->
-                AppCard(item, onInstall = { onInstall(item) })
+                AppCard(item, onOpen = { vm.openApp(item) }, onInstall = { onInstall(item) })
             }
             if (prerelease.isNotEmpty()) {
                 item(key = "prerelease-header") {
@@ -168,7 +182,7 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                     }
                 }
                 items(prerelease, key = { "prerelease:" + it.app.packageName }) { item ->
-                    AppCard(item, onInstall = { onInstall(item) })
+                    AppCard(item, onOpen = { vm.openApp(item) }, onInstall = { onInstall(item) })
                 }
             }
         }
@@ -224,10 +238,10 @@ fun StoreUpdateBanner(release: Release, progress: Float?, onUpdate: () -> Unit) 
     }
 }
 
+/** One app in the list. Tapping it opens the app's page. */
 @Composable
-fun AppCard(item: AppItem, onInstall: () -> Unit) {
-    val context = LocalContext.current
-    Card(Modifier.fillMaxWidth()) {
+fun AppCard(item: AppItem, onOpen: () -> Unit, onInstall: () -> Unit) {
+    Card(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text(item.app.name, style = MaterialTheme.typography.titleMedium)
             if (item.app.description.isNotBlank()) {
@@ -244,29 +258,86 @@ fun AppCard(item: AppItem, onInstall: () -> Unit) {
                 )
             }
             Spacer(Modifier.height(12.dp))
+            AppActions(item, onInstall)
+        }
+    }
+}
 
-            if (item.progress != null) {
-                LinearProgressIndicator(progress = { item.progress ?: 0f }, modifier = Modifier.fillMaxWidth())
-                return@Column
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val installed = item.installedVersion != null
-                if (item.release != null && (!installed || item.updateAvailable)) {
-                    if (item.compatible) {
-                        Button(onClick = onInstall) { Text(if (installed) "Update" else "Install") }
-                    } else {
-                        Button(onClick = {}, enabled = false) {
-                            Text("Needs Android ${Store.androidVersionName(item.app.minSdk)}+")
-                        }
-                    }
-                }
-                if (installed && item.app.packageName != context.packageName) {
-                    val launch = context.packageManager.getLaunchIntentForPackage(item.app.packageName)
-                    if (launch != null) {
-                        OutlinedButton(onClick = { context.startActivity(launch) }) { Text("Open") }
-                    }
+/** Install / Update / Open, or the download progress while installing. */
+@Composable
+fun AppActions(item: AppItem, onInstall: () -> Unit) {
+    val context = LocalContext.current
+    if (item.progress != null) {
+        LinearProgressIndicator(progress = { item.progress ?: 0f }, modifier = Modifier.fillMaxWidth())
+        return
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val installed = item.installedVersion != null
+        if (item.release != null && (!installed || item.updateAvailable)) {
+            if (item.compatible) {
+                Button(onClick = onInstall) { Text(if (installed) "Update" else "Install") }
+            } else {
+                Button(onClick = {}, enabled = false) {
+                    Text("Needs Android ${Store.androidVersionName(item.app.minSdk)}+")
                 }
             }
+        }
+        if (installed && item.app.packageName != context.packageName) {
+            val launch = context.packageManager.getLaunchIntentForPackage(item.app.packageName)
+            if (launch != null) {
+                OutlinedButton(onClick = { context.startActivity(launch) }) { Text("Open") }
+            }
+        }
+    }
+}
+
+/**
+ * An app's page: everything about its latest release, and a direct GitHub check of just this
+ * app (see StoreViewModel.openApp), so it can show a release the store list hasn't caught up with.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppPage(item: AppItem, check: AppCheck?, onBack: () -> Unit, onInstall: () -> Unit) {
+    val context = LocalContext.current
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(item.app.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } },
+            )
+        },
+    ) { padding ->
+        Column(
+            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (item.app.description.isNotBlank()) {
+                Text(item.app.description, style = MaterialTheme.typography.bodyLarge)
+            }
+            Text(versionLine(item), style = MaterialTheme.typography.bodyMedium)
+            check?.let {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (it.checking) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Text(it.message, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            if (item.app.prerelease) {
+                Text("Pre-release: a test build. It may be unfinished or break.", style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.height(4.dp))
+            AppActions(item, onInstall)
+            item.release?.let { release ->
+                Spacer(Modifier.height(12.dp))
+                Text("What's new in ${release.version}", style = MaterialTheme.typography.titleMedium)
+                SelectionContainer {
+                    Text(release.notes.ifBlank { "No release notes." }, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Text("Package ${item.app.packageName}", style = MaterialTheme.typography.bodySmall)
+            TextButton(onClick = {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${item.app.repo}/releases")))
+            }) { Text("All releases on GitHub") }
         }
     }
 }
