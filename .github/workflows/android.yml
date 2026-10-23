@@ -23,8 +23,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Test script
-        run: scripts/test-next-version.sh
+      - name: Test scripts
+        run: |
+          scripts/test-next-version.sh
+          python3 scripts/test-build-index.py
 
       # Not signed with the release key; versionCode 1 so it never blocks a real release.
       - name: Build APK
