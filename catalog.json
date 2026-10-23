@@ -13,6 +13,12 @@
       "repo": "aman-dhakar-191/Mindscroll",
       "description": "Counts the reels and shorts you swipe through each day in Instagram, YouTube and Facebook, and keeps the number in your status bar, around the camera and on a widget.",
       "minSdk": 26
+    },
+    {
+      "name": "Jianghu Chain",
+      "package": "io.github.amandhakar.jianghuchain",
+      "repo": "aman-dhakar-191/inkbound-jianghu",
+      "description": "Wuxia story game. Play a chain of heroes: each one's choices, grudges and techniques pass to the next."
     }
   ],
   "prereleaseApps": [
