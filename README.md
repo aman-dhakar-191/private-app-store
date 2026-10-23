@@ -17,7 +17,11 @@ every app is a GitHub repo, every version is a release with an `.apk` attached.
    limited), it shows the saved list with a note instead of an empty screen.
 5. It compares the release tag (`v1.2.0` → `1.2.0`) with the installed app's
    `versionName`, and shows **Install**, **Update** or **Open**.
-6. Install downloads the APK and hands it to Android's package installer, which shows
+6. Tapping an app opens its page: full release notes, versions and size, Install / Update /
+   Open, and a link to its releases on GitHub. The page asks GitHub about that one app
+   directly (one API call, at most every 5 minutes per app), so it can show a release the
+   index hasn't picked up yet. If that call fails it says so and shows the index's version.
+7. Install downloads the APK and hands it to Android's package installer, which shows
    the normal system confirmation.
 
 ### Store updates
