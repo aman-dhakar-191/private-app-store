@@ -19,6 +19,13 @@
       "package": "io.github.amandhakar.jianghuchain",
       "repo": "aman-dhakar-191/inkbound-jianghu",
       "description": "Wuxia story game. Play a chain of heroes: each one's choices, grudges and techniques pass to the next."
+    },
+    {
+      "name": "Androvia",
+      "package": "dev.androvia.app",
+      "repo": "aman-dhakar-191/Androvia",
+      "description": "Secure device runtime that runs only the capabilities you enable on this phone. Early foundation build: no relay connection yet.",
+      "minSdk": 29
     }
   ],
   "prereleaseApps": [
