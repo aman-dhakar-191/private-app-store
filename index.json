@@ -1,0 +1,53 @@
+{
+  "releases": {
+    "aman-dhakar-191/Androvia": {
+      "apkSize": 24743734,
+      "apkUrl": "https://github.com/aman-dhakar-191/Androvia/releases/download/v1.1.0/androvia-1.1.0.apk",
+      "notes": "## What's Changed\n* Phase 3: client identity, pairing, scopes, revocation and audit by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Androvia/pull/7\n* Phase 4: MCP gateway by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Androvia/pull/8\n* Phase 4: stdio MCP bridge (mcpbridge) by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Androvia/pull/9\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/Androvia/compare/v1.0.1...v1.1.0",
+      "tag": "v1.1.0",
+      "version": "1.1.0"
+    },
+    "aman-dhakar-191/Mindscroll": {
+      "apkSize": 7363666,
+      "apkUrl": "https://github.com/aman-dhakar-191/Mindscroll/releases/download/v1.3.0/mindscroll-1.3.0.apk",
+      "notes": "Mo 2.0, part 1: Mo knows when to hush (quiet at night, quiet for an hour), remembers patterns you can keep or forget (What Mo remembers), checks in when you ask, and now and then brings something up on its own.\n\n## What's Changed\n* Mo 2.0, milestones 1–3: speaking policy, memory, and initiative by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Mindscroll/pull/9\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/Mindscroll/compare/v1.2.1...v1.3.0",
+      "tag": "v1.3.0",
+      "version": "1.3.0"
+    },
+    "aman-dhakar-191/inkbound-jianghu": {
+      "apkSize": 51587517,
+      "apkUrl": "https://github.com/aman-dhakar-191/inkbound-jianghu/releases/download/v0.1.2/jianghu-chain-0.1.2.apk",
+      "notes": "Fixes the crash when opening the game. Voices now use the phone's default text-to-speech voice; if speech ever crashes, the next launch turns voice off and plays with subtitles.\n\n## What's Changed\n* Fix crash on start: stop asking Android for its text-to-speech voices by @aman-dhakar-191 in https://github.com/aman-dhakar-191/inkbound-jianghu/pull/3\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/inkbound-jianghu/compare/v0.1.1...v0.1.2",
+      "tag": "v0.1.2",
+      "version": "0.1.2"
+    },
+    "aman-dhakar-191/passkey-provider-android": {
+      "apkSize": 4316292,
+      "apkUrl": "https://github.com/aman-dhakar-191/passkey-provider-android/releases/download/v2.1.1/passkey-provider-2.1.1.apk",
+      "notes": "## What's Changed\n* Backup & recovery: allow screenshots in the GitHub build by @aman-dhakar-191 in https://github.com/aman-dhakar-191/passkey-provider-android/pull/62\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/passkey-provider-android/compare/v2.1.0...v2.1.1",
+      "tag": "v2.1.1",
+      "version": "2.1.1"
+    },
+    "aman-dhakar-191/passkey-provider-android#cryptolab-v": {
+      "apkSize": 25538807,
+      "apkUrl": "https://github.com/aman-dhakar-191/passkey-provider-android/releases/download/cryptolab-v0.1.0/crypto-lab-0.1.0.apk",
+      "notes": "Crypto Lab: an experiment app for sending data to another phone over an encrypted channel\n(Wi-Fi or Bluetooth, paired by QR code or a 6-digit code). It is not Passkey Vault.\nMarked as a pre-release on purpose, so Passkey Vault's updater ignores it.\n\nInstall the APK on two Android 14+ phones; see cryptolab/README.md for how to try it.\n\n\n## What's Changed\n* Crypto Lab: release workflow like the demo's by @aman-dhakar-191 in https://github.com/aman-dhakar-191/passkey-provider-android/pull/55\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/passkey-provider-android/compare/demo-v1.0.3...cryptolab-v0.1.0",
+      "tag": "cryptolab-v0.1.0",
+      "version": "0.1.0"
+    },
+    "aman-dhakar-191/passkey-provider-android#demo-v": {
+      "apkSize": 25002831,
+      "apkUrl": "https://github.com/aman-dhakar-191/passkey-provider-android/releases/download/demo-v1.0.3/passkey-demo-1.0.3.apk",
+      "notes": "Passkey Demo: a test app for trying passkeys the way other apps use them. It is not Passkey Vault.\nMarked as a pre-release on purpose, so Passkey Vault's updater ignores it.\n\n`assetlinks.json` is the file the demo's site must publish at `/.well-known/assetlinks.json`.\n\n\n## What's Changed\n* Crypto Lab: experimental app for secure phone-to-phone transfer by @aman-dhakar-191 in https://github.com/aman-dhakar-191/passkey-provider-android/pull/54\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/passkey-provider-android/compare/v1.3.8...demo-v1.0.3",
+      "tag": "demo-v1.0.3",
+      "version": "1.0.3"
+    }
+  },
+  "store": {
+    "apkSize": 7373363,
+    "apkUrl": "https://github.com/aman-dhakar-191/private-app-store/releases/download/v0.4.0/app-store-0.4.0.apk",
+    "notes": "The store no longer runs into GitHub's rate limit: it reads one release index instead of asking GitHub once per app, and keeps the last list when a refresh fails. Tap an app to open its page, with full release notes and a fresh check of just that app.\n\n## What's Changed\n* App page: tap an app to see its details and check just that app by @aman-dhakar-191 in https://github.com/aman-dhakar-191/private-app-store/pull/11\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/private-app-store/compare/v0.3.1...v0.4.0",
+    "tag": "v0.4.0",
+    "version": "0.4.0"
+  }
+}
