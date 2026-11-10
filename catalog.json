@@ -26,6 +26,13 @@
       "repo": "aman-dhakar-191/Androvia",
       "description": "Secure device runtime that runs only the capabilities you enable on this phone. Early foundation build: no relay connection yet.",
       "minSdk": 29
+    },
+    {
+      "name": "Documents",
+      "package": "io.github.amandhakar.documents",
+      "repo": "aman-dhakar-191/documents-android",
+      "description": "Reads PDF files. Opens them from your files or from other apps. Word and editing support are planned.",
+      "minSdk": 26
     }
   ],
   "prereleaseApps": [
