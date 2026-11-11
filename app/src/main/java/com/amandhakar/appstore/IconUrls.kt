@@ -3,6 +3,21 @@ package com.amandhakar.appstore
 /** Works out where an app's icon is downloaded from. Free of Android calls so it can be unit tested. */
 object IconUrls {
     /**
+     * A screenshot's address from the catalog's "screenshots" list: an `https://` address is used
+     * as it is, another path is read from the store repo, and anything else (http://, file://, ...
+     * or an empty entry) gives null, meaning "skip this one".
+     */
+    fun screenshot(rawBase: String, path: String): String? {
+        val given = path.trim()
+        return when {
+            given.isEmpty() -> null
+            given.startsWith("https://") -> given
+            "://" in given -> null
+            else -> rawBase + given.trimStart('/')
+        }
+    }
+
+    /**
      * - an `https://` address in the catalog's "icon" field is used as it is;
      * - another path in "icon" is read from the store repo (relative to [rawBase]);
      * - nothing given means `icons/<package>.png` in the store repo.

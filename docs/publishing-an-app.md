@@ -20,6 +20,8 @@ Any Android app can be in the store if its GitHub repo follows these rules.
 
 - Put a square PNG (about 256 px) at `icons/<package name>.png` in the store repo, or set
   `"icon"` in the catalog entry. Phones that have the app installed show its own icon anyway.
+- Optional screenshots: add `"screenshots": ["screenshots/<package name>/1.png", ...]` to the catalog
+  entry (paths in the store repo, or `https://` addresses).
 - Write a short release note in each release's description. It is shown on the app's page and
   under the app in the list; GitHub's generated change list is only used when there is no note.
 

@@ -25,6 +25,8 @@ data class CatalogApp(
     val tagPrefix: String = "v",
     /** Optional address (https://...) or path in the store repo of the app's icon. See IconUrls. */
     val icon: String = "",
+    /** Optional pictures of the app: https addresses, or paths in the store repo. See IconUrls. */
+    val screenshots: List<String> = emptyList(),
 )
 
 /** The latest GitHub release of an app that has an APK attached. */
@@ -112,8 +114,24 @@ object GitHub {
                 prerelease = prerelease,
                 tagPrefix = app.optString("tagPrefix").ifEmpty { "v" },
                 icon = app.optString("icon"),
+                screenshots = (app.optJSONArray("screenshots") ?: JSONArray()).let { list ->
+                    (0 until list.length()).map { list.optString(it) }.filter { it.isNotBlank() }
+                },
             )
         }
+
+    /** The repo's recent releases, newest first as GitHub lists them. One API call. */
+    suspend fun recentReleases(repo: String): List<RawRelease> = withContext(Dispatchers.IO) {
+        JSONArray(get("https://api.github.com/repos/$repo/releases?per_page=30")).objects().map {
+            RawRelease(
+                tag = it.getString("tag_name"),
+                draft = it.optBoolean("draft"),
+                prerelease = it.optBoolean("prerelease"),
+                publishedAt = it.optString("published_at"),
+                body = it.optString("body"),
+            )
+        }
+    }
 
     suspend fun releaseFor(app: CatalogApp): Release? =
         if (app.prerelease) latestTaggedRelease(app.repo, app.tagPrefix) else latestRelease(app.repo)
