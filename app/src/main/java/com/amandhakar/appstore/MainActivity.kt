@@ -161,6 +161,9 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                     })
                 }
             }
+            item(key = "store-info") {
+                StoreInfoRow(state.storeCheck, onCheck = vm::checkStoreUpdate)
+            }
             if (state.loading && state.items.isEmpty()) {
                 item(key = "loading") {
                     Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
@@ -211,6 +214,28 @@ fun InstallPermissionCard(onAllow: () -> Unit) {
             )
             Spacer(Modifier.height(12.dp))
             Button(onClick = onAllow) { Text("Allow") }
+        }
+    }
+}
+
+/** The store's own version, with a button that checks GitHub for a newer one and says what it found. */
+@Composable
+fun StoreInfoRow(check: StoreCheck?, onCheck: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("App Store ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelLarge)
+            check?.let {
+                Text(it.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (check?.checking == true) {
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+        } else {
+            OutlinedButton(onClick = onCheck) { Text("Check for update") }
         }
     }
 }

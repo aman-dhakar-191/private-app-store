@@ -25,10 +25,15 @@ data class StoreState(
     val openApp: String? = null,
     /** Result of the last direct GitHub check per package name. */
     val appChecks: Map<String, AppCheck> = emptyMap(),
+    /** Result of the last "Check for update" of the store itself, null before the first. */
+    val storeCheck: StoreCheck? = null,
 )
 
 /** The app page's own check of one app on GitHub. */
 data class AppCheck(val checking: Boolean, val message: String)
+
+/** The "Check for update" button's check of the store itself on GitHub. */
+data class StoreCheck(val checking: Boolean, val message: String)
 
 class StoreViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -72,6 +77,29 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 _state.update { it.copy(loading = false, error = e.message ?: e.toString()) }
             }
+        }
+    }
+
+    /**
+     * Asks GitHub directly (one API call) whether there is a newer store, instead of reading the
+     * release index, which can lag a few minutes. A newer release shows the usual update banner.
+     */
+    fun checkStoreUpdate() {
+        if (_state.value.storeCheck?.checking == true) return
+        _state.update { it.copy(storeCheck = StoreCheck(checking = true, message = "Checking GitHub…")) }
+        viewModelScope.launch {
+            val check = try {
+                val latest = GitHub.latestRelease(BuildConfig.STORE_REPO)
+                val newer = latest?.takeIf { compareVersions(it.version, BuildConfig.VERSION_NAME) > 0 }
+                _state.update { it.copy(storeUpdate = newer) }
+                val time = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date())
+                StoreCheck(checking = false, message = StoreUpdateText.result(BuildConfig.VERSION_NAME, latest?.version, time))
+            } catch (e: IOException) {
+                StoreCheck(checking = false, message = "Couldn't check GitHub (${e.message}).")
+            } catch (e: JSONException) {
+                StoreCheck(checking = false, message = "Couldn't read GitHub's answer.")
+            }
+            _state.update { it.copy(storeCheck = check) }
         }
     }
 
