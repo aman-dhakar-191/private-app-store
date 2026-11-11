@@ -4,10 +4,13 @@ import android.app.Application
 import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONException
 import java.io.IOException
 import java.text.DateFormat
@@ -19,8 +22,10 @@ data class StoreState(
     val error: String? = null,
     /** A newer release of the store itself, if there is one. */
     val storeUpdate: Release? = null,
-    /** Download progress of the store update, null when not downloading. */
-    val storeProgress: Float? = null,
+    /** Where the store's own update is up to, null when nothing is happening. */
+    val storeDownload: DownloadState? = null,
+    /** How far "Update all" has got, null when it isn't running. */
+    val updateAll: UpdateAllRun? = null,
     /** Package name of the app whose page is open, null on the list. */
     val openApp: String? = null,
     /** Result of the last direct GitHub check per package name. */
@@ -64,7 +69,10 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             }
             try {
                 val loaded = Store.loadApps(context)
-                val items = loaded.items.map { item ->
+                // A refresh must not wipe the progress of a download that is still going.
+                val downloads = _state.value.items.associate { it.app.packageName to it.download }
+                val items = loaded.items.map { fresh ->
+                    val item = fresh.copy(download = downloads[fresh.app.packageName])
                     val direct = checked[item.app.packageName]?.second
                     val listed = item.release
                     if (direct != null && (listed == null || compareVersions(direct.version, listed.version) > 0)) {
@@ -149,42 +157,138 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Downloads and installs an app, or tries again after a failure. Does nothing while one is already going. */
     fun install(item: AppItem) {
         val release = item.release ?: return
-        if (item.progress != null) return
-        downloadAndInstall(release) { p -> setProgress(item, p) }
+        val pkg = item.app.packageName
+        val current = item.download
+        if (current != null && current !is DownloadState.Failed) return
+        launchJob(pkg) { runDownload(release) { setItemDownload(pkg, it) } }
+    }
+
+    /** Stops an app's download. If it was only waiting its turn in Update all, it is taken out of the queue. */
+    fun cancelDownload(item: AppItem) {
+        val pkg = item.app.packageName
+        jobs[pkg]?.cancel()
+        if (currentDownload(pkg) is DownloadState.Queued) setItemDownload(pkg, null)
+    }
+
+    /** Clears an app's failure message. */
+    fun dismissFailure(item: AppItem) {
+        if (currentDownload(item.app.packageName) is DownloadState.Failed) setItemDownload(item.app.packageName, null)
     }
 
     /** Updates the store itself. Android closes the store while it installs the new version. */
     fun updateStore() {
         val release = _state.value.storeUpdate ?: return
-        if (_state.value.storeProgress != null) return
-        downloadAndInstall(release) { p -> _state.update { it.copy(storeProgress = p) } }
+        val current = _state.value.storeDownload
+        if (current != null && current !is DownloadState.Failed) return
+        launchJob(STORE_KEY) { runDownload(release) { st -> _state.update { it.copy(storeDownload = st) } } }
     }
 
-    private fun downloadAndInstall(release: Release, setProgress: (Float?) -> Unit) {
-        val context = getApplication<Application>()
-        viewModelScope.launch {
-            setProgress(0f)
+    fun cancelStoreDownload() {
+        jobs[STORE_KEY]?.cancel()
+    }
+
+    fun dismissStoreFailure() {
+        _state.update { if (it.storeDownload is DownloadState.Failed) it.copy(storeDownload = null) else it }
+    }
+
+    /**
+     * Updates every app that has an update, one after another: each is downloaded, then Android
+     * asks for its confirmation, and only when that is answered does the next one start. The
+     * store's own update is not part of this, because installing it restarts the store.
+     */
+    fun updateAll() {
+        if (_state.value.updateAll != null) return
+        val todo = UpdateAll.pending(_state.value.items)
+        if (todo.isEmpty()) return
+        todo.forEach { setItemDownload(it.app.packageName, DownloadState.Queued) }
+        launchJob(UPDATE_ALL_KEY) {
             try {
-                val apk = Installer.download(context, release.apkUrl, release.sha256) { p -> setProgress(p) }
-                Installer.install(context, apk)
-            } catch (e: Exception) {
-                Installer.report("Download failed: ${e.message}")
+                for ((index, item) in todo.withIndex()) {
+                    val pkg = item.app.packageName
+                    // Skipped when the user took this one out of the queue while it waited.
+                    if (currentDownload(pkg) !is DownloadState.Queued) continue
+                    _state.update { it.copy(updateAll = UpdateAllRun(done = index, total = todo.size)) }
+                    val release = item.release
+                    if (release == null) {
+                        setItemDownload(pkg, null)
+                        continue
+                    }
+                    launchJob(pkg) { runDownload(release) { setItemDownload(pkg, it) } }.join()
+                }
             } finally {
-                setProgress(null)
+                // Cancelled part-way: the one running stops and the ones still waiting are dropped.
+                todo.forEach { item ->
+                    val pkg = item.app.packageName
+                    jobs[pkg]?.cancel()
+                    if (currentDownload(pkg) is DownloadState.Queued) setItemDownload(pkg, null)
+                }
+                _state.update { it.copy(updateAll = null) }
             }
         }
     }
 
-    private fun setProgress(item: AppItem, progress: Float?) {
-        _state.update { s ->
-            s.copy(items = s.items.map { if (it.app == item.app) it.copy(progress = progress) else it })
+    fun cancelUpdateAll() {
+        jobs[UPDATE_ALL_KEY]?.cancel()
+    }
+
+    // Running downloads, by package name (or the keys below), so they can be cancelled.
+    private val jobs = mutableMapOf<String, Job>()
+
+    private fun launchJob(key: String, block: suspend () -> Unit): Job {
+        jobs[key]?.cancel()
+        val job = viewModelScope.launch { block() }
+        jobs[key] = job
+        job.invokeOnCompletion { if (jobs[key] === job) jobs.remove(key) }
+        return job
+    }
+
+    /**
+     * Downloads, checks and installs one release, reporting each step through [set]. Returns true
+     * when Android installed it. A failure becomes a [DownloadState.Failed] to show (with Retry);
+     * cancelling clears the state.
+     */
+    private suspend fun runDownload(release: Release, set: (DownloadState?) -> Unit): Boolean {
+        val context = getApplication<Application>()
+        set(DownloadState.Downloading(0, 0))
+        return try {
+            val apk = Installer.download(context, release.apkUrl, release.sha256) { done, total ->
+                set(DownloadState.Downloading(done, total))
+            }
+            set(DownloadState.Installing)
+            val installed = Installer.install(context, apk)
+            // The result comes when the person answers Android's confirmation screen, so allow for that.
+            val ok = withTimeoutOrNull(INSTALL_WAIT_MS) { installed.await() } == true
+            set(null)
+            ok
+        } catch (e: CancellationException) {
+            set(null)
+            throw e
+        } catch (e: Exception) {
+            set(DownloadState.Failed(e.message ?: "Download failed"))
+            false
         }
     }
+
+    private fun setItemDownload(pkg: String, state: DownloadState?) {
+        _state.update { s ->
+            s.copy(items = s.items.map { if (it.app.packageName == pkg) it.copy(download = state) else it })
+        }
+    }
+
+    private fun currentDownload(pkg: String): DownloadState? =
+        _state.value.items.firstOrNull { it.app.packageName == pkg }?.download
 
     private companion object {
         /** How long a direct check of one app stays fresh. */
         const val RECHECK_MS = 5 * 60 * 1000L
+
+        /** How long to wait for the person to answer Android's install screen. */
+        const val INSTALL_WAIT_MS = 10 * 60 * 1000L
+
+        const val STORE_KEY = ":store"
+        const val UPDATE_ALL_KEY = ":update-all"
     }
 }
