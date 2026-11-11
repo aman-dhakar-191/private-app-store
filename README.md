@@ -21,8 +21,9 @@ every app is a GitHub repo, every version is a release with an `.apk` attached.
    Open, and a link to its releases on GitHub. The page asks GitHub about that one app
    directly (one API call, at most every 5 minutes per app), so it can show a release the
    index hasn't picked up yet. If that call fails it says so and shows the index's version.
-7. Install downloads the APK and hands it to Android's package installer, which shows
-   the normal system confirmation.
+7. Install downloads the APK, checks it against the SHA-256 GitHub published for that file (a
+   corrupted or swapped download is refused and deleted), and hands it to Android's package
+   installer, which shows the normal system confirmation.
 
 ### Store updates
 
@@ -186,6 +187,10 @@ are only test builds: not signed with your key, and kept as a workflow artifact.
 - **Scheduled workflows pause** after 60 days without activity in a public repo. If the
   index stops updating, run **Actions → Release index → Run workflow** (or push anything).
 - **Only launchable apps** are detected as installed (apps with a launcher icon).
+- **Checksums need GitHub's digest.** A release whose files GitHub gave no checksum for (older
+  uploads) is installed without that check; Android still refuses an update signed with a
+  different key. The checksum protects against a corrupted or tampered download, not against a
+  release someone with access to the repo published on purpose.
 
 ## Building locally
 

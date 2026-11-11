@@ -9,15 +9,18 @@ bi = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bi)
 
 
-def rel(tag, apk=True, draft=False, body=""):
+def rel(tag, apk=True, draft=False, body="", digest=None):
     assets = [{"name": "notes.txt", "browser_download_url": "x", "size": 1}]
     if apk:
-        assets.append({"name": f"app-{tag}.APK", "browser_download_url": f"https://dl/{tag}.apk", "size": 42})
+        asset = {"name": f"app-{tag}.APK", "browser_download_url": f"https://dl/{tag}.apk", "size": 42}
+        if digest is not None:
+            asset["digest"] = digest
+        assets.append(asset)
     return {"tag_name": tag, "draft": draft, "body": body, "assets": assets}
 
 
 FAKE = {
-    "/repos/me/store/releases/latest": rel("v0.3.0", body="store notes"),
+    "/repos/me/store/releases/latest": rel("v0.3.0", body="store notes", digest="sha256:" + "AB" * 32),
     "/repos/me/game/releases/latest": rel("v1.10.0"),
     "/repos/me/empty/releases/latest": None,
     "/repos/me/noapk/releases/latest": rel("v2.0.0", apk=False),
@@ -48,6 +51,13 @@ check(index["store"]["version"], "0.3.0", "store version")
 check(index["store"]["notes"], "store notes", "store notes")
 check(index["releases"]["me/game"]["version"], "1.10.0", "latest release version")
 check(index["releases"]["me/game"]["apkUrl"], "https://dl/v1.10.0.apk", "first .apk asset, any case")
+check(index["store"]["sha256"], "ab" * 32, "sha256 taken from GitHub's digest, lowercased")
+check(index["releases"]["me/game"]["sha256"], "", "no digest from GitHub gives no sha256")
+check(bi.sha256_of({"digest": "md5:" + "a" * 32}), "", "another algorithm is ignored")
+check(bi.sha256_of({"digest": "sha256:abc"}), "", "wrong length is ignored")
+check(bi.sha256_of({"digest": "sha256:" + "g" * 64}), "", "non-hex is ignored")
+check(bi.sha256_of({"digest": None}), "", "null digest is ignored")
+check(bi.sha256_of({}), "", "missing digest is ignored")
 check(index["releases"]["me/empty"], None, "repo without releases")
 check(index["releases"]["me/noapk"], None, "release without an apk")
 check(index["releases"]["me/multi#demo-v"]["version"], "1.10.0", "highest tagged version, no drafts or apk-less")

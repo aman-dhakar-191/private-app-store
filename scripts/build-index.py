@@ -42,6 +42,16 @@ def compare_versions(a, b):
     return 0
 
 
+def sha256_of(asset):
+    """The asset's SHA-256 as 64 lowercase hex digits, from GitHub's "digest": "sha256:...", or "" if it gave none."""
+    digest = (asset.get("digest") or "").lower()
+    if digest.startswith("sha256:"):
+        value = digest[len("sha256:"):]
+        if len(value) == 64 and all(c in "0123456789abcdef" for c in value):
+            return value
+    return ""
+
+
 def to_release(rel, prefix):
     apk = next((a for a in rel.get("assets", []) if a["name"].lower().endswith(".apk")), None)
     if apk is None:
@@ -56,6 +66,7 @@ def to_release(rel, prefix):
         "notes": rel.get("body") or "",
         "apkUrl": apk["browser_download_url"],
         "apkSize": apk.get("size", 0),
+        "sha256": sha256_of(apk),
     }
 
 

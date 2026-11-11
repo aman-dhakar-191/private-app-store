@@ -34,6 +34,8 @@ data class Release(
     val notes: String,
     val apkUrl: String,
     val apkSize: Long,
+    /** The APK's SHA-256 as 64 lowercase hex digits, or "" when GitHub gave none (then it isn't checked). */
+    val sha256: String = "",
 )
 
 class GitHubException(message: String) : IOException(message)
@@ -96,6 +98,7 @@ object GitHub {
         notes = optString("notes"),
         apkUrl = getString("apkUrl"),
         apkSize = optLong("apkSize"),
+        sha256 = Checksums.normalise(optString("sha256")),
     )
 
     private fun JSONObject.catalogList(key: String, prerelease: Boolean): List<CatalogApp> =
@@ -148,6 +151,7 @@ object GitHub {
             notes = optString("body"),
             apkUrl = apk.getString("browser_download_url"),
             apkSize = apk.optLong("size"),
+            sha256 = Checksums.normalise(apk.optString("digest")),
         )
     }
 
