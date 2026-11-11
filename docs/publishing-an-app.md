@@ -16,6 +16,13 @@ Any Android app can be in the store if its GitHub repo follows these rules.
    builds made on CI use a different key every time, so always sign with your own key.
 7. **The package name in `catalog.json`** matches the app's `applicationId`.
 
+## Icon and description (optional)
+
+- Put a square PNG (about 256 px) at `icons/<package name>.png` in the store repo, or set
+  `"icon"` in the catalog entry. Phones that have the app installed show its own icon anyway.
+- Write a short release note in each release's description. It is shown on the app's page and
+  under the app in the list; GitHub's generated change list is only used when there is no note.
+
 ## Copy-paste workflow
 
 Put this in the app's repo as `.github/workflows/release.yml`, add the same four secrets

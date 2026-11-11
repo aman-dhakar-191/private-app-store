@@ -28,6 +28,9 @@ jobs:
           scripts/test-next-version.sh
           python3 scripts/test-build-index.py
 
+      - name: Unit tests
+        run: ./gradlew --no-daemon testDebugUnitTest
+
       # Not signed with the release key; versionCode 1 so it never blocks a real release.
       - name: Build APK
         run: |

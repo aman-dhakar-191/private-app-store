@@ -74,9 +74,26 @@ Add an entry to `catalog.json` and push to `main`. Friends see it on their next 
 
 - `minSdk` (optional) is the app's `minSdk`. On phones with an older Android version the
   store shows "Needs Android X+" instead of an Install button that would only fail.
+- `icon` (optional) is where the app's icon comes from when it isn't installed. See
+  [Icons and descriptions](#icons-and-descriptions).
 
 The app's repo must follow the rules in [docs/publishing-an-app.md](docs/publishing-an-app.md).
 That page also has a ready-made GitHub Actions workflow you can copy into each app's repo.
+
+### Icons and descriptions
+
+- **Installed apps** always show their own icon (Android gives it to the store), so nothing has to
+  be set up.
+- **Apps that aren't installed yet** show `icons/<package name>.png` from this repo (for example
+  `icons/io.github.amandhakar.documents.png`), if the file exists. A square PNG of about 256 px is
+  right; the store rounds the corners. To use a different place, set `"icon"` in the catalog entry
+  to an `https://` address, or to a path inside this repo. Other kinds of address are ignored.
+- With no icon at all, the app is listed without one, as before.
+- The text under the name is the catalog `description`. The line below it says whether the app is
+  installed and up to date, or what the update is.
+- Release notes are shown as plain text: markdown marks are removed, and GitHub's generated
+  "What's Changed" list, "New Contributors" and "Full Changelog" link are left out when you wrote a
+  note yourself. Write a short note in the release description for the best result.
 
 ### Pre-release apps
 

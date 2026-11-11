@@ -25,6 +25,12 @@ android {
             "CATALOG_URL",
             "\"https://raw.githubusercontent.com/aman-dhakar-191/private-app-store/main/catalog.json\"",
         )
+        // Where app icons are read from (icons/<package>.png in the store repo, or a path given in the catalog).
+        buildConfigField(
+            "String",
+            "RAW_BASE_URL",
+            "\"https://raw.githubusercontent.com/aman-dhakar-191/private-app-store/main/\"",
+        )
         // Latest release of every app and of the store, written by the "Release index" workflow.
         buildConfigField(
             "String",
@@ -85,4 +91,6 @@ dependencies {
     implementation("androidx.core:core-ktx:1.16.0")
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
+
+    testImplementation("junit:junit:4.13.2")
 }
