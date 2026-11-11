@@ -358,7 +358,6 @@ fun AboutPage(
             }
 
             Spacer(Modifier.height(12.dp))
-            VersionHistory(history, onLoadHistory)
             TextButton(onClick = {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${BuildConfig.STORE_REPO}/releases")))
             }) { Text("Store releases on GitHub") }
@@ -635,6 +634,7 @@ fun AppPage(
                 }
             }
             Spacer(Modifier.height(12.dp))
+            VersionHistory(history, onLoadHistory)
             TextButton(onClick = {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${item.app.repo}/releases")))
             }) { Text("All releases on GitHub") }
