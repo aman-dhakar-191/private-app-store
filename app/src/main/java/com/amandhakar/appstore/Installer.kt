@@ -11,8 +11,13 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
+
+/** The downloaded file is not the one GitHub says was released. */
+class ChecksumException : IOException("The downloaded file doesn't match its checksum, so it was not installed.")
 
 object Installer {
 
@@ -25,13 +30,19 @@ object Installer {
         _results.tryEmit(message)
     }
 
-    /** Downloads the APK, reporting progress from 0 to 1. */
+    /**
+     * Downloads the APK, reporting progress from 0 to 1. When [expectedSha256] is a valid SHA-256 the
+     * file must match it, otherwise it is deleted and [ChecksumException] is thrown. With none (an
+     * older release GitHub gave no checksum for) the file is not checked.
+     */
     suspend fun download(
         context: Context,
         url: String,
+        expectedSha256: String = "",
         onProgress: (Float) -> Unit,
     ): File = withContext(Dispatchers.IO) {
         val file = File(context.cacheDir, "download.apk")
+        val digest = MessageDigest.getInstance("SHA-256")
         val conn = URL(url).openConnection() as HttpURLConnection
         try {
             conn.connectTimeout = 15_000
@@ -48,6 +59,7 @@ object Installer {
                         val n = input.read(buffer)
                         if (n < 0) break
                         output.write(buffer, 0, n)
+                        digest.update(buffer, 0, n)
                         done += n
                         if (total > 0) onProgress(done.toFloat() / total)
                     }
@@ -55,6 +67,11 @@ object Installer {
             }
         } finally {
             conn.disconnect()
+        }
+        val expected = Checksums.normalise(expectedSha256)
+        if (expected.isNotEmpty() && !Checksums.matches(expected, Checksums.hex(digest.digest()))) {
+            file.delete()
+            throw ChecksumException()
         }
         file
     }

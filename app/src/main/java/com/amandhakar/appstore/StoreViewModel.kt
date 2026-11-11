@@ -167,7 +167,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             setProgress(0f)
             try {
-                val apk = Installer.download(context, release.apkUrl) { p -> setProgress(p) }
+                val apk = Installer.download(context, release.apkUrl, release.sha256) { p -> setProgress(p) }
                 Installer.install(context, apk)
             } catch (e: Exception) {
                 Installer.report("Download failed: ${e.message}")

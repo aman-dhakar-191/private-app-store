@@ -8,3 +8,6 @@ local.properties
 *.keystore
 captures/
 .kotlin/
+
+__pycache__/
+*.pyc
