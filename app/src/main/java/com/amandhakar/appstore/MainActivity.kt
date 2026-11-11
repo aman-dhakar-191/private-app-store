@@ -37,7 +37,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -55,12 +58,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -125,6 +131,21 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
         if (canInstall(context)) vm.install(item) else askInstallPermission(context)
     }
 
+    // The About page replaces the list while it is open; Back returns to the list.
+    var showAbout by rememberSaveable { mutableStateOf(false) }
+    if (showAbout) {
+        BackHandler { showAbout = false }
+        AboutPage(
+            check = state.storeCheck,
+            update = state.storeUpdate,
+            updateProgress = state.storeProgress,
+            onCheck = vm::checkStoreUpdate,
+            onUpdate = { if (canInstall(context)) vm.updateStore() else askInstallPermission(context) },
+            onBack = { showAbout = false },
+        )
+        return
+    }
+
     // An app's page replaces the list while it is open; Back returns to the list.
     val open = state.openApp?.let { pkg -> state.items.firstOrNull { it.app.packageName == pkg } }
     if (open != null) {
@@ -139,6 +160,30 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                 title = { Text("App Store") },
                 actions = {
                     TextButton(onClick = vm::refresh, enabled = !state.loading) { Text("Refresh") }
+                    var menuOpen by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(
+                            onClick = { menuOpen = true },
+                            modifier = Modifier.semantics { contentDescription = "More options" },
+                        ) { Text("\u22EE", style = MaterialTheme.typography.titleLarge) }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(
+                                text = { Text("Check for update") },
+                                onClick = {
+                                    menuOpen = false
+                                    showAbout = true
+                                    vm.checkStoreUpdate()
+                                },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("About") },
+                                onClick = {
+                                    menuOpen = false
+                                    showAbout = true
+                                },
+                            )
+                        }
+                    }
                 },
             )
         },
@@ -160,9 +205,6 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                         if (canInstall(context)) vm.updateStore() else askInstallPermission(context)
                     })
                 }
-            }
-            item(key = "store-info") {
-                StoreInfoRow(state.storeCheck, onCheck = vm::checkStoreUpdate)
             }
             if (state.loading && state.items.isEmpty()) {
                 item(key = "loading") {
@@ -218,24 +260,81 @@ fun InstallPermissionCard(onAllow: () -> Unit) {
     }
 }
 
-/** The store's own version, with a button that checks GitHub for a newer one and says what it found. */
+/**
+ * About the store: its version, a button that checks GitHub directly for a newer store (and says
+ * what it found), and links. A newer store also shows the update button here.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StoreInfoRow(check: StoreCheck?, onCheck: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("App Store ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.labelLarge)
-            check?.let {
-                Text(it.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+fun AboutPage(
+    check: StoreCheck?,
+    update: Release?,
+    updateProgress: Float?,
+    onCheck: () -> Unit,
+    onUpdate: () -> Unit,
+    onBack: () -> Unit,
+) {
+    val context = LocalContext.current
+    val icon = remember { AppIcons.installed(context, context.packageName, BuildConfig.VERSION_NAME) }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("About") },
+                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } },
+            )
+        },
+    ) { padding ->
+        Column(
+            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (icon != null) {
+                    Image(
+                        bitmap = icon.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.size(72.dp).clip(RoundedCornerShape(16.dp)),
+                    )
+                }
+                Column {
+                    Text("App Store", style = MaterialTheme.typography.headlineSmall)
+                    Text("Version ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyMedium)
+                }
             }
-        }
-        if (check?.checking == true) {
-            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-        } else {
-            OutlinedButton(onClick = onCheck) { Text("Check for update") }
+            Text(
+                "A small app store for friends. The apps, and their updates, come from GitHub Releases.",
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Spacer(Modifier.height(8.dp))
+
+            if (update != null) {
+                Text("Version ${update.version} is available", style = MaterialTheme.typography.titleMedium)
+                if (updateProgress != null) {
+                    LinearProgressIndicator(progress = { updateProgress }, modifier = Modifier.fillMaxWidth())
+                } else {
+                    Button(onClick = onUpdate) { Text("Update store") }
+                }
+            }
+            if (check?.checking == true) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Text(check.message, style = MaterialTheme.typography.bodyMedium)
+                }
+            } else {
+                OutlinedButton(onClick = onCheck) { Text("Check for update") }
+                check?.let {
+                    Text(it.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+            TextButton(onClick = {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${BuildConfig.STORE_REPO}/releases")))
+            }) { Text("Store releases on GitHub") }
+            TextButton(onClick = {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${BuildConfig.STORE_REPO}")))
+            }) { Text("Source and app list on GitHub") }
+            Text("Package ${context.packageName}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
