@@ -164,7 +164,14 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
     val open = state.openApp?.let { pkg -> state.items.firstOrNull { it.app.packageName == pkg } }
     if (open != null) {
         BackHandler(onBack = vm::closeApp)
-        AppPage(open, state.appChecks[open.app.packageName], onBack = vm::closeApp, actions = actionsFor(open))
+        AppPage(
+            open,
+            state.appChecks[open.app.packageName],
+            history = state.histories[open.app.packageName],
+            onLoadHistory = { vm.loadHistory(open) },
+            onBack = vm::closeApp,
+            actions = actionsFor(open),
+        )
         return
     }
 
@@ -557,7 +564,14 @@ fun AppActions(item: AppItem, actions: DownloadActions) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppPage(item: AppItem, check: AppCheck?, onBack: () -> Unit, actions: DownloadActions) {
+fun AppPage(
+    item: AppItem,
+    check: AppCheck?,
+    history: HistoryState?,
+    onLoadHistory: () -> Unit,
+    onBack: () -> Unit,
+    actions: DownloadActions,
+) {
     val context = LocalContext.current
     Scaffold(
         topBar = {
@@ -598,6 +612,17 @@ fun AppPage(item: AppItem, check: AppCheck?, onBack: () -> Unit, actions: Downlo
             }
             Spacer(Modifier.height(4.dp))
             AppActions(item, actions)
+            if (item.app.screenshots.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Screenshots(item.app)
+            }
+            if (item.app.minSdk > 0) {
+                Text(
+                    "Requires Android ${Store.androidVersionName(item.app.minSdk)} or newer",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             item.release?.let { release ->
                 Spacer(Modifier.height(12.dp))
                 Text("What's new in ${release.version}", style = MaterialTheme.typography.titleMedium)
@@ -609,9 +634,68 @@ fun AppPage(item: AppItem, check: AppCheck?, onBack: () -> Unit, actions: Downlo
                 }
             }
             Spacer(Modifier.height(12.dp))
+            VersionHistory(history, onLoadHistory)
             TextButton(onClick = {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${item.app.repo}/releases")))
             }) { Text("All releases on GitHub") }
+        }
+    }
+}
+
+/** The app's screenshots, side by side. One that can't be loaded is simply left out. */
+@Composable
+private fun Screenshots(app: CatalogApp) {
+    val context = LocalContext.current.applicationContext
+    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(app.screenshots) { path ->
+            val bitmap by produceState<Bitmap?>(null, path) {
+                val url = IconUrls.screenshot(BuildConfig.RAW_BASE_URL, path)
+                value = if (url == null) null else RemoteImages.load(context, url, maxBytes = 5_000_000, maxSide = 1280)
+            }
+            bitmap?.let {
+                Image(
+                    it.asImageBitmap(),
+                    contentDescription = "Screenshot of ${app.name}",
+                    modifier = Modifier.height(320.dp).clip(RoundedCornerShape(12.dp)),
+                )
+            }
+        }
+    }
+}
+
+/** "Version history": nothing is asked of GitHub until the person taps to show it. */
+@Composable
+private fun VersionHistory(history: HistoryState?, onLoad: () -> Unit) {
+    when (history) {
+        null -> TextButton(onClick = onLoad) { Text("Show version history") }
+        HistoryState.Loading -> Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+            Text("Loading version history", style = MaterialTheme.typography.bodySmall)
+        }
+        is HistoryState.Failed -> Column {
+            Text(history.message, style = MaterialTheme.typography.bodySmall)
+            TextButton(onClick = onLoad) { Text("Try again") }
+        }
+        is HistoryState.Loaded -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Version history", style = MaterialTheme.typography.titleMedium)
+            if (history.entries.isEmpty()) Text("No earlier versions.", style = MaterialTheme.typography.bodySmall)
+            history.entries.forEach { entry ->
+                Column {
+                    Text(
+                        listOf(entry.version + if (entry.prerelease) " (pre-release)" else "", entry.date)
+                            .filter { it.isNotBlank() }.joinToString("  ·  "),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        entry.notes.ifBlank { "No release notes." },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
     }
 }

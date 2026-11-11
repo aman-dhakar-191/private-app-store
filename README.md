@@ -96,6 +96,9 @@ Add an entry to `catalog.json` and push to `main`. Friends see it on their next 
 
 - `minSdk` (optional) is the app's `minSdk`. On phones with an older Android version the
   store shows "Needs Android X+" instead of an Install button that would only fail.
+- `screenshots` (optional) is a list of pictures shown on the app's page: paths in this repo
+  (for example `screenshots/com.example.app/1.png`) or `https://` addresses. See
+  [Screenshots and version history](#screenshots-and-version-history).
 - `icon` (optional) is where the app's icon comes from when it isn't installed. See
   [Icons and descriptions](#icons-and-descriptions).
 
@@ -111,6 +114,19 @@ That page also has a ready-made GitHub Actions workflow you can copy into each a
   right; the store rounds the corners. To use a different place, set `"icon"` in the catalog entry
   to an `https://` address, or to a path inside this repo. Other kinds of address are ignored.
 - With no icon at all, the app is listed without one, as before.
+
+### Screenshots and version history
+
+- **Screenshots** are only shown when the catalog entry lists them, e.g.
+  `"screenshots": ["screenshots/com.example.app/1.png"]`. Paths are read from this repo like icons;
+  `https://` addresses are used as they are; anything else (`http://`, empty) is skipped. Pictures
+  are shrunk to about 1280 px, files over 5 MB are ignored, and they are kept for a day.
+- **Version history** is on each app's page behind "Show version history". It reads that repo's
+  last releases from GitHub (one request, only when tapped) and lists up to 10 versions, newest
+  first, with dates and notes. Drafts are left out, and pre-releases are only listed for apps
+  published as pre-releases.
+- Status: implemented; the helpers (address, sizing, history selection) have unit tests. The screen
+  itself has not been checked on a device.
 - The text under the name is the catalog `description`. The line below it says whether the app is
   installed and up to date, or what the update is.
 - Release notes are shown as plain text: markdown marks are removed, and GitHub's generated

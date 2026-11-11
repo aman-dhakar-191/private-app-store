@@ -30,6 +30,8 @@ data class StoreState(
     val openApp: String? = null,
     /** Result of the last direct GitHub check per package name. */
     val appChecks: Map<String, AppCheck> = emptyMap(),
+    /** The version history asked for on an app's page, per package name. */
+    val histories: Map<String, HistoryState> = emptyMap(),
     /** Result of the last "Check for update" of the store itself, null before the first. */
     val storeCheck: StoreCheck? = null,
 )
@@ -139,6 +141,29 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             }
             setCheck(pkg, check)
         }
+    }
+
+    /** Loads an app's recent releases (one GitHub call) when the person asks to see the version history. */
+    fun loadHistory(item: AppItem) {
+        val pkg = item.app.packageName
+        val current = _state.value.histories[pkg]
+        if (current is HistoryState.Loading || current is HistoryState.Loaded) return
+        setHistory(pkg, HistoryState.Loading)
+        viewModelScope.launch {
+            val result = try {
+                val raw = GitHub.recentReleases(item.app.repo)
+                HistoryState.Loaded(History.select(raw, item.app.tagPrefix, item.app.prerelease, HISTORY_LIMIT))
+            } catch (e: IOException) {
+                HistoryState.Failed("Couldn't load the version history (${e.message}).")
+            } catch (e: JSONException) {
+                HistoryState.Failed("Couldn't read GitHub's answer.")
+            }
+            setHistory(pkg, result)
+        }
+    }
+
+    private fun setHistory(pkg: String, state: HistoryState) {
+        _state.update { it.copy(histories = it.histories + (pkg to state)) }
     }
 
     fun closeApp() {
@@ -284,6 +309,9 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     private companion object {
         /** How long a direct check of one app stays fresh. */
         const val RECHECK_MS = 5 * 60 * 1000L
+
+        /** How many past versions the app page lists. */
+        const val HISTORY_LIMIT = 10
 
         /** How long to wait for the person to answer Android's install screen. */
         const val INSTALL_WAIT_MS = 10 * 60 * 1000L
