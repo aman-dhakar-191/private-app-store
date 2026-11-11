@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -40,11 +41,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -64,6 +67,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -419,7 +423,7 @@ fun AppCard(item: AppItem, onOpen: () -> Unit, actions: DownloadActions) {
                         )
                     }
                     Spacer(Modifier.height(2.dp))
-                    Text(statusLine(item), style = MaterialTheme.typography.labelMedium)
+                    StatusLabel(item, MaterialTheme.typography.labelMedium)
                 }
             }
             whatsNew(item)?.let { notes ->
@@ -542,17 +546,19 @@ fun AppActions(item: AppItem, actions: DownloadActions) {
         val installed = item.installedVersion != null
         if (item.release != null && (!installed || item.updateAvailable)) {
             if (item.compatible) {
-                Button(onClick = actions.onStart) { Text(if (installed) "Update" else "Install") }
+                Button(onClick = actions.onStart) {
+                    IconLabel(if (installed) StoreIcons.Refresh else StoreIcons.Download, if (installed) "Update" else "Install")
+                }
             } else {
                 Button(onClick = {}, enabled = false) {
-                    Text("Needs Android ${Store.androidVersionName(item.app.minSdk)}+")
+                    IconLabel(StoreIcons.Warning, "Needs Android ${Store.androidVersionName(item.app.minSdk)}+")
                 }
             }
         }
         if (installed && item.app.packageName != context.packageName) {
             val launch = context.packageManager.getLaunchIntentForPackage(item.app.packageName)
             if (launch != null) {
-                OutlinedButton(onClick = { context.startActivity(launch) }) { Text("Open") }
+                OutlinedButton(onClick = { context.startActivity(launch) }) { IconLabel(StoreIcons.OpenInNew, "Open") }
             }
         }
     }
@@ -587,15 +593,36 @@ fun AppPage(
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 AppIcon(item, 72.dp)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(item.app.name, style = MaterialTheme.typography.headlineSmall)
-                    Text(statusLine(item), style = MaterialTheme.typography.bodyMedium)
+                    StatusLabel(item, MaterialTheme.typography.bodyMedium)
                     Text(
                         item.app.packageName,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+            Spacer(Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                InfoTile(
+                    Modifier.weight(1f),
+                    StoreIcons.Tag,
+                    item.release?.version ?: item.installedVersion?.ifBlank { null } ?: "\u2014",
+                    "Latest version",
+                )
+                InfoTile(
+                    Modifier.weight(1f),
+                    StoreIcons.Storage,
+                    item.release?.apkSize?.takeIf { it > 0 }?.let { DownloadText.size(it) } ?: "\u2014",
+                    "Download size",
+                )
+                InfoTile(
+                    Modifier.weight(1f),
+                    StoreIcons.Phone,
+                    if (item.app.minSdk > 0) "${Store.androidVersionName(item.app.minSdk)}+" else "Any",
+                    "Android",
+                )
             }
             if (item.app.description.isNotBlank()) {
                 Spacer(Modifier.height(4.dp))
@@ -616,28 +643,25 @@ fun AppPage(
                 Spacer(Modifier.height(8.dp))
                 Screenshots(item.app)
             }
-            if (item.app.minSdk > 0) {
-                Text(
-                    "Requires Android ${Store.androidVersionName(item.app.minSdk)} or newer",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             item.release?.let { release ->
-                Spacer(Modifier.height(12.dp))
-                Text("What's new in ${release.version}", style = MaterialTheme.typography.titleMedium)
-                SelectionContainer {
-                    Text(
-                        ReleaseNotes.clean(release.notes).ifBlank { "No release notes." },
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
+                Spacer(Modifier.height(8.dp))
+                Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SectionTitle(StoreIcons.Info, "What's new in ${release.version}")
+                        SelectionContainer {
+                            Text(
+                                ReleaseNotes.clean(release.notes).ifBlank { "No release notes." },
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
                 }
             }
             Spacer(Modifier.height(12.dp))
             VersionHistory(history, onLoadHistory)
             TextButton(onClick = {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${item.app.repo}/releases")))
-            }) { Text("All releases on GitHub") }
+            }) { IconLabel(StoreIcons.OpenInNew, "All releases on GitHub") }
         }
     }
 }
@@ -667,36 +691,108 @@ private fun Screenshots(app: CatalogApp) {
 @Composable
 private fun VersionHistory(history: HistoryState?, onLoad: () -> Unit) {
     when (history) {
-        null -> TextButton(onClick = onLoad) { Text("Show version history") }
+        null -> OutlinedButton(onClick = onLoad) { IconLabel(StoreIcons.History, "Show version history") }
         HistoryState.Loading -> Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-            Text("Loading version history", style = MaterialTheme.typography.bodySmall)
+            Text("Loading version history", style = MaterialTheme.typography.bodyMedium)
         }
         is HistoryState.Failed -> Column {
             Text(history.message, style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = onLoad) { Text("Try again") }
         }
         is HistoryState.Loaded -> Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Version history", style = MaterialTheme.typography.titleMedium)
+            SectionTitle(StoreIcons.History, "Version history")
             if (history.entries.isEmpty()) Text("No earlier versions.", style = MaterialTheme.typography.bodySmall)
             history.entries.forEach { entry ->
-                Column {
-                    Text(
-                        listOf(entry.version + if (entry.prerelease) " (pre-release)" else "", entry.date)
-                            .filter { it.isNotBlank() }.joinToString("  ·  "),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Text(
-                        entry.notes.ifBlank { "No release notes." },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.primaryContainer) {
+                                Text(
+                                    entry.version,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
+                                )
+                            }
+                            if (entry.prerelease) {
+                                Text("pre-release", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                            }
+                            Spacer(Modifier.weight(1f))
+                            if (entry.date.isNotBlank()) {
+                                Text(entry.date, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        Text(
+                            entry.notes.ifBlank { "No release notes." },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+/** A small icon followed by text, for buttons and headings. */
+@Composable
+private fun IconLabel(icon: ImageVector, text: String) {
+    Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+    Spacer(Modifier.width(8.dp))
+    Text(text)
+}
+
+@Composable
+private fun SectionTitle(icon: ImageVector, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+        Text(text, style = MaterialTheme.typography.titleMedium)
+    }
+}
+
+/** A rounded box with an icon, a value and what it is, like "7.4 MB / Download size". */
+@Composable
+private fun InfoTile(modifier: Modifier, icon: ImageVector, value: String, label: String) {
+    Surface(modifier = modifier, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+        Column(
+            Modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary)
+            Text(value, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        }
+    }
+}
+
+/** The status line with a small picture in front: tick, update arrow, download arrow or warning. */
+@Composable
+private fun StatusLabel(item: AppItem, style: androidx.compose.ui.text.TextStyle) {
+    val kind = StatusText.kind(
+        installed = item.installedVersion != null,
+        hasRelease = item.release != null,
+        updateAvailable = item.updateAvailable,
+        compatible = item.compatible,
+    )
+    val (icon, tint) = when (kind) {
+        StatusText.Kind.UpToDate -> StoreIcons.CheckCircle to MaterialTheme.colorScheme.primary
+        StatusText.Kind.UpdateAvailable -> StoreIcons.Refresh to MaterialTheme.colorScheme.tertiary
+        StatusText.Kind.NeedsNewerAndroid -> StoreIcons.Warning to MaterialTheme.colorScheme.error
+        StatusText.Kind.NoRelease -> StoreIcons.Info to MaterialTheme.colorScheme.onSurfaceVariant
+        StatusText.Kind.NotInstalled -> StoreIcons.Download to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = tint)
+        Text(statusLine(item), style = style)
     }
 }
 
