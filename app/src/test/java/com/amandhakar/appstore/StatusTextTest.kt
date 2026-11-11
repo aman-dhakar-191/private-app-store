@@ -29,3 +29,30 @@ class StatusTextTest {
     @Test fun anInstalledVersionWithNoNameShowsAQuestionMark() =
         assertEquals("Installed ?${dot}Up to date", StatusText.line("", "1.0", 0, false))
 }
+
+class StoreUpdateTextTest {
+    @Test fun aNewerReleaseIsAnnounced() = assertEquals(
+        "Version 0.5.0 is available (you have 0.4.0). Checked at 10:42 AM.",
+        StoreUpdateText.result("0.4.0", "0.5.0", "10:42 AM"),
+    )
+
+    @Test fun theSameVersionMeansUpToDate() = assertEquals(
+        "You have the latest version (0.4.0). Checked at 10:42 AM.",
+        StoreUpdateText.result("0.4.0", "0.4.0", "10:42 AM"),
+    )
+
+    @Test fun anOlderReleaseThanTheInstalledOneAlsoMeansUpToDate() = assertEquals(
+        "You have the latest version (0.5.0). Checked at 10:42 AM.",
+        StoreUpdateText.result("0.5.0", "0.4.9", "10:42 AM"),
+    )
+
+    @Test fun versionsAreComparedAsNumbersNotText() = assertEquals(
+        "Version 0.10.0 is available (you have 0.9.0). Checked at 9:00 AM.",
+        StoreUpdateText.result("0.9.0", "0.10.0", "9:00 AM"),
+    )
+
+    @Test fun noReleaseOnGitHub() = assertEquals(
+        "No release found on GitHub. Checked at 10:42 AM.",
+        StoreUpdateText.result("0.4.0", null, "10:42 AM"),
+    )
+}
