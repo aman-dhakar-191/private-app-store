@@ -131,6 +131,20 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
         if (canInstall(context)) vm.install(item) else askInstallPermission(context)
     }
 
+    // What the Install / Update, Cancel, Retry and Dismiss buttons of an app, and of the store, do.
+    val actionsFor = { item: AppItem ->
+        DownloadActions(
+            onStart = { onInstall(item) },
+            onCancel = { vm.cancelDownload(item) },
+            onDismiss = { vm.dismissFailure(item) },
+        )
+    }
+    val storeActions = DownloadActions(
+        onStart = { if (canInstall(context)) vm.updateStore() else askInstallPermission(context) },
+        onCancel = vm::cancelStoreDownload,
+        onDismiss = vm::dismissStoreFailure,
+    )
+
     // The About page replaces the list while it is open; Back returns to the list.
     var showAbout by rememberSaveable { mutableStateOf(false) }
     if (showAbout) {
@@ -138,9 +152,9 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
         AboutPage(
             check = state.storeCheck,
             update = state.storeUpdate,
-            updateProgress = state.storeProgress,
+            updateDownload = state.storeDownload,
+            updateActions = storeActions,
             onCheck = vm::checkStoreUpdate,
-            onUpdate = { if (canInstall(context)) vm.updateStore() else askInstallPermission(context) },
             onBack = { showAbout = false },
         )
         return
@@ -150,7 +164,7 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
     val open = state.openApp?.let { pkg -> state.items.firstOrNull { it.app.packageName == pkg } }
     if (open != null) {
         BackHandler(onBack = vm::closeApp)
-        AppPage(open, state.appChecks[open.app.packageName], onBack = vm::closeApp, onInstall = { onInstall(open) })
+        AppPage(open, state.appChecks[open.app.packageName], onBack = vm::closeApp, actions = actionsFor(open))
         return
     }
 
@@ -201,9 +215,18 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
             }
             state.storeUpdate?.let { release ->
                 item(key = "store-update") {
-                    StoreUpdateBanner(release, state.storeProgress, onUpdate = {
-                        if (canInstall(context)) vm.updateStore() else askInstallPermission(context)
-                    })
+                    StoreUpdateBanner(release, state.storeDownload, storeActions)
+                }
+            }
+            val pending = UpdateAll.pending(state.items)
+            if (state.updateAll != null || pending.size >= 2) {
+                item(key = "update-all") {
+                    UpdateAllCard(
+                        count = pending.size,
+                        run = state.updateAll,
+                        onUpdateAll = { if (canInstall(context)) vm.updateAll() else askInstallPermission(context) },
+                        onCancel = vm::cancelUpdateAll,
+                    )
                 }
             }
             if (state.loading && state.items.isEmpty()) {
@@ -221,7 +244,7 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
             }
             val (prerelease, stable) = state.items.partition { it.app.prerelease }
             items(stable, key = { "stable:" + it.app.packageName }) { item ->
-                AppCard(item, onOpen = { vm.openApp(item) }, onInstall = { onInstall(item) })
+                AppCard(item, onOpen = { vm.openApp(item) }, actions = actionsFor(item))
             }
             if (prerelease.isNotEmpty()) {
                 item(key = "prerelease-header") {
@@ -234,7 +257,7 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                     }
                 }
                 items(prerelease, key = { "prerelease:" + it.app.packageName }) { item ->
-                    AppCard(item, onOpen = { vm.openApp(item) }, onInstall = { onInstall(item) })
+                    AppCard(item, onOpen = { vm.openApp(item) }, actions = actionsFor(item))
                 }
             }
         }
@@ -269,9 +292,9 @@ fun InstallPermissionCard(onAllow: () -> Unit) {
 fun AboutPage(
     check: StoreCheck?,
     update: Release?,
-    updateProgress: Float?,
+    updateDownload: DownloadState?,
+    updateActions: DownloadActions,
     onCheck: () -> Unit,
-    onUpdate: () -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -309,10 +332,10 @@ fun AboutPage(
 
             if (update != null) {
                 Text("Version ${update.version} is available", style = MaterialTheme.typography.titleMedium)
-                if (updateProgress != null) {
-                    LinearProgressIndicator(progress = { updateProgress }, modifier = Modifier.fillMaxWidth())
+                if (updateDownload != null) {
+                    DownloadStatus(updateDownload, updateActions)
                 } else {
-                    Button(onClick = onUpdate) { Text("Update store") }
+                    Button(onClick = updateActions.onStart) { Text("Update store") }
                 }
             }
             if (check?.checking == true) {
@@ -340,7 +363,7 @@ fun AboutPage(
 }
 
 @Composable
-fun StoreUpdateBanner(release: Release, progress: Float?, onUpdate: () -> Unit) {
+fun StoreUpdateBanner(release: Release, download: DownloadState?, actions: DownloadActions) {
     Card(
         Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
@@ -351,19 +374,19 @@ fun StoreUpdateBanner(release: Release, progress: Float?, onUpdate: () -> Unit) 
                 "Version ${release.version} (you have ${BuildConfig.VERSION_NAME})",
                 style = MaterialTheme.typography.bodyMedium,
             )
-            if (release.notes.isNotBlank()) {
+            ReleaseNotes.clean(release.notes).takeIf { it.isNotBlank() }?.let { notes ->
                 Text(
-                    release.notes,
+                    notes,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
             Spacer(Modifier.height(12.dp))
-            if (progress != null) {
-                LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+            if (download != null) {
+                DownloadStatus(download, actions)
             } else {
-                Button(onClick = onUpdate) { Text("Update store") }
+                Button(onClick = actions.onStart) { Text("Update store") }
             }
         }
     }
@@ -371,7 +394,7 @@ fun StoreUpdateBanner(release: Release, progress: Float?, onUpdate: () -> Unit) 
 
 /** One app in the list: its icon, name, a short description and status. Tapping it opens the app's page. */
 @Composable
-fun AppCard(item: AppItem, onOpen: () -> Unit, onInstall: () -> Unit) {
+fun AppCard(item: AppItem, onOpen: () -> Unit, actions: DownloadActions) {
     Card(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -403,7 +426,7 @@ fun AppCard(item: AppItem, onOpen: () -> Unit, onInstall: () -> Unit) {
                 )
             }
             Spacer(Modifier.height(12.dp))
-            AppActions(item, onInstall)
+            AppActions(item, actions)
         }
     }
 }
@@ -432,19 +455,87 @@ fun AppIcon(item: AppItem, size: Dp, modifier: Modifier = Modifier) {
     }
 }
 
-/** Install / Update / Open, or the download progress while installing. */
+/**
+ * Where a download and install are up to: the step in words, the amount downloaded, a bar, and the
+ * button that fits (Cancel while it can still be stopped, Retry and Dismiss after a failure).
+ */
 @Composable
-fun AppActions(item: AppItem, onInstall: () -> Unit) {
+fun DownloadStatus(state: DownloadState, actions: DownloadActions, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (state is DownloadState.Failed) {
+            Text(state.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = actions.onStart) { Text("Retry") }
+                TextButton(onClick = actions.onDismiss) { Text("Dismiss") }
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(DownloadText.line(state), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                if (state is DownloadState.Downloading || state is DownloadState.Queued) {
+                    TextButton(onClick = actions.onCancel) { Text("Cancel") }
+                }
+            }
+            if (state !is DownloadState.Queued) {
+                val bar = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp))
+                val fraction = DownloadText.fraction(state)
+                if (fraction != null) {
+                    LinearProgressIndicator(progress = { fraction }, modifier = bar)
+                } else {
+                    LinearProgressIndicator(modifier = bar) // size unknown, or waiting on Android: keeps moving
+                }
+            }
+        }
+    }
+}
+
+/** At the top of the list when several apps have updates: one button for all, or where it has got to. */
+@Composable
+fun UpdateAllCard(count: Int, run: UpdateAllRun?, onUpdateAll: () -> Unit, onCancel: () -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(Modifier.weight(1f)) {
+                if (run == null) {
+                    Text(UpdateAll.summary(count), style = MaterialTheme.typography.titleSmall)
+                } else {
+                    Text("Updating ${minOf(run.done + 1, run.total)} of ${run.total}", style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        "Android asks you to confirm each one.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+            if (run == null) {
+                Button(onClick = onUpdateAll) { Text(UpdateAll.label(count)) }
+            } else {
+                TextButton(onClick = onCancel) { Text("Cancel all") }
+            }
+        }
+    }
+}
+
+/** What the buttons under a download do: start (or retry), cancel, and clear a failure message. */
+class DownloadActions(val onStart: () -> Unit, val onCancel: () -> Unit, val onDismiss: () -> Unit)
+
+/** Install / Update / Open, or where the download and install are up to. */
+@Composable
+fun AppActions(item: AppItem, actions: DownloadActions) {
     val context = LocalContext.current
-    if (item.progress != null) {
-        LinearProgressIndicator(progress = { item.progress ?: 0f }, modifier = Modifier.fillMaxWidth())
+    item.download?.let { download ->
+        DownloadStatus(download, actions)
         return
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         val installed = item.installedVersion != null
         if (item.release != null && (!installed || item.updateAvailable)) {
             if (item.compatible) {
-                Button(onClick = onInstall) { Text(if (installed) "Update" else "Install") }
+                Button(onClick = actions.onStart) { Text(if (installed) "Update" else "Install") }
             } else {
                 Button(onClick = {}, enabled = false) {
                     Text("Needs Android ${Store.androidVersionName(item.app.minSdk)}+")
@@ -466,7 +557,7 @@ fun AppActions(item: AppItem, onInstall: () -> Unit) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppPage(item: AppItem, check: AppCheck?, onBack: () -> Unit, onInstall: () -> Unit) {
+fun AppPage(item: AppItem, check: AppCheck?, onBack: () -> Unit, actions: DownloadActions) {
     val context = LocalContext.current
     Scaffold(
         topBar = {
@@ -506,7 +597,7 @@ fun AppPage(item: AppItem, check: AppCheck?, onBack: () -> Unit, onInstall: () -
                 Text("Pre-release: a test build. It may be unfinished or break.", style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.height(4.dp))
-            AppActions(item, onInstall)
+            AppActions(item, actions)
             item.release?.let { release ->
                 Spacer(Modifier.height(12.dp))
                 Text("What's new in ${release.version}", style = MaterialTheme.typography.titleMedium)

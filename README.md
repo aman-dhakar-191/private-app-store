@@ -25,6 +25,20 @@ every app is a GitHub repo, every version is a release with an `.apk` attached.
    corrupted or swapped download is refused and deleted), and hands it to Android's package
    installer, which shows the normal system confirmation.
 
+### Downloads, Update all, cancel and retry
+
+While an app downloads, its card shows the step in words (Downloading, with how much of the file is
+done and a percentage; Installing, while Android asks you to confirm), a bar, and **Cancel**.
+Cancelling stops the download and deletes the partly downloaded file. If a download fails (no
+network, or a file that doesn't match its checksum), the card says why and offers **Retry** and
+**Dismiss**.
+
+When two or more apps have updates, **Update all (N)** appears at the top of the list. It goes
+through them one after another: it downloads an app, Android asks you to confirm the install, and
+only then does the next one start. **Cancel all** stops the one running and drops the rest, and
+**Cancel** on one app takes just that app out. The store's own update isn't part of Update all,
+because installing it restarts the store.
+
 ### Store updates
 
 The **⋮** menu at the top right has **Check for update** and **About**. The About page shows the

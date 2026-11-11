@@ -15,8 +15,8 @@ data class AppItem(
     val app: CatalogApp,
     val release: Release?,
     val installedVersion: String?,
-    /** Download progress 0..1 while downloading, null otherwise. */
-    val progress: Float? = null,
+    /** Where its download / install is up to, or null when nothing is happening. */
+    val download: DownloadState? = null,
 ) {
     val updateAvailable: Boolean
         get() = release != null && installedVersion != null &&
