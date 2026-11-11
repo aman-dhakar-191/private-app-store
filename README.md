@@ -26,9 +26,12 @@ every app is a GitHub repo, every version is a release with an `.apk` attached.
 
 ### Store updates
 
-The **Check for update** button at the top of the list asks GitHub directly (one request) whether
-there is a newer store, and says what it found, including when it checked. A newer release shows
-the banner described below. This skips the release index, which can lag a few minutes.
+The **⋮** menu at the top right has **Check for update** and **About**. The About page shows the
+store's version and has a **Check for update** button that asks GitHub directly (one request)
+whether there is a newer store, and says what it found, including when it checked. This skips the
+release index, which can lag a few minutes. A newer release also shows the banner described below
+and an **Update store** button on the About page. The home page shows nothing extra unless there is
+an update.
 
 On every launch and refresh, the store also checks this repo's latest release. This check
 is separate from loading the app list, so a broken catalog or app repo never hides a store
