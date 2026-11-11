@@ -23,6 +23,8 @@ data class CatalogApp(
      */
     val prerelease: Boolean = false,
     val tagPrefix: String = "v",
+    /** Optional address (https://...) or path in the store repo of the app's icon. See IconUrls. */
+    val icon: String = "",
 )
 
 /** The latest GitHub release of an app that has an APK attached. */
@@ -106,6 +108,7 @@ object GitHub {
                 minSdk = app.optInt("minSdk", 0),
                 prerelease = prerelease,
                 tagPrefix = app.optString("tagPrefix").ifEmpty { "v" },
+                icon = app.optString("icon"),
             )
         }
 

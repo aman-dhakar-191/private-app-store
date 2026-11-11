@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
@@ -13,6 +14,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -50,12 +53,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -238,28 +245,66 @@ fun StoreUpdateBanner(release: Release, progress: Float?, onUpdate: () -> Unit) 
     }
 }
 
-/** One app in the list. Tapping it opens the app's page. */
+/** One app in the list: its icon, name, a short description and status. Tapping it opens the app's page. */
 @Composable
 fun AppCard(item: AppItem, onOpen: () -> Unit, onInstall: () -> Unit) {
     Card(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            Text(item.app.name, style = MaterialTheme.typography.titleMedium)
-            if (item.app.description.isNotBlank()) {
-                Text(item.app.description, style = MaterialTheme.typography.bodyMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                // Shows nothing (and takes no room) when the app has no icon.
+                AppIcon(item, 56.dp)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(item.app.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (item.app.description.isNotBlank()) {
+                        Text(
+                            item.app.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Spacer(Modifier.height(2.dp))
+                    Text(statusLine(item), style = MaterialTheme.typography.labelMedium)
+                }
             }
-            Spacer(Modifier.height(8.dp))
-            Text(versionLine(item), style = MaterialTheme.typography.bodySmall)
-            item.release?.notes?.takeIf { it.isNotBlank() }?.let { notes ->
+            whatsNew(item)?.let { notes ->
+                Spacer(Modifier.height(8.dp))
                 Text(
                     notes,
                     style = MaterialTheme.typography.bodySmall,
-                    maxLines = 3,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
             Spacer(Modifier.height(12.dp))
             AppActions(item, onInstall)
         }
+    }
+}
+
+/**
+ * The app's icon, rounded. An installed app shows its own icon; otherwise the icon is downloaded
+ * from the store repo. With neither, nothing is drawn, which is how the list looked before icons.
+ */
+@Composable
+fun AppIcon(item: AppItem, size: Dp, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val packageName = item.app.packageName
+    val installed = remember(packageName, item.installedVersion) {
+        if (item.installedVersion != null) AppIcons.installed(context, packageName, item.installedVersion) else null
+    }
+    val downloaded by produceState<Bitmap?>(initialValue = null, packageName, item.app.icon, installed == null) {
+        if (installed == null) value = AppIcons.remote(context.applicationContext, item.app)
+    }
+    val bitmap = installed ?: downloaded
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = null,
+            modifier = modifier.size(size).clip(RoundedCornerShape(size * 0.22f)),
+        )
     }
 }
 
@@ -311,10 +356,22 @@ fun AppPage(item: AppItem, check: AppCheck?, onBack: () -> Unit, onInstall: () -
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                AppIcon(item, 72.dp)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(item.app.name, style = MaterialTheme.typography.headlineSmall)
+                    Text(statusLine(item), style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        item.app.packageName,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             if (item.app.description.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
                 Text(item.app.description, style = MaterialTheme.typography.bodyLarge)
             }
-            Text(versionLine(item), style = MaterialTheme.typography.bodyMedium)
             check?.let {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (it.checking) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
@@ -330,11 +387,13 @@ fun AppPage(item: AppItem, check: AppCheck?, onBack: () -> Unit, onInstall: () -
                 Spacer(Modifier.height(12.dp))
                 Text("What's new in ${release.version}", style = MaterialTheme.typography.titleMedium)
                 SelectionContainer {
-                    Text(release.notes.ifBlank { "No release notes." }, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        ReleaseNotes.clean(release.notes).ifBlank { "No release notes." },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Text("Package ${item.app.packageName}", style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = {
                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${item.app.repo}/releases")))
             }) { Text("All releases on GitHub") }
@@ -342,14 +401,16 @@ fun AppPage(item: AppItem, check: AppCheck?, onBack: () -> Unit, onInstall: () -
     }
 }
 
-private fun versionLine(item: AppItem): String {
-    val latest = item.release?.let { r ->
-        val mb = if (r.apkSize > 0) " · %.1f MB".format(r.apkSize / 1_000_000.0) else ""
-        "Latest ${r.version}$mb"
-    } ?: "No APK release yet"
-    val installed = item.installedVersion?.let { "Installed ${it.ifBlank { "?" }}" } ?: "Not installed"
-    return "$latest · $installed"
-}
+private fun statusLine(item: AppItem): String = StatusText.line(
+    installedVersion = item.installedVersion,
+    latestVersion = item.release?.version,
+    latestSizeBytes = item.release?.apkSize ?: 0,
+    updateAvailable = item.updateAvailable,
+)
+
+/** The latest release's notes as plain text, or null when there are none worth showing. */
+private fun whatsNew(item: AppItem): String? =
+    item.release?.notes?.let { ReleaseNotes.clean(it) }?.takeIf { it.isNotBlank() }
 
 private fun canInstall(context: android.content.Context): Boolean =
     context.packageManager.canRequestPackageInstalls()
