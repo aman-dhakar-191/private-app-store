@@ -127,6 +127,9 @@ That page also has a ready-made GitHub Actions workflow you can copy into each a
   published as pre-releases.
 - Status: implemented; the helpers (address, sizing, history selection) have unit tests. The screen
   itself has not been checked on a device.
+- The app page and list use small icons (drawn from path data in `StoreIcons.kt`, no icon library):
+  a status icon, version / size / Android tiles, and icons on the buttons. Layout only, not
+  unit-tested; status choice (`StatusText.kind`) is.
 - The text under the name is the catalog `description`. The line below it says whether the app is
   installed and up to date, or what the update is.
 - Release notes are shown as plain text: markdown marks are removed, and GitHub's generated

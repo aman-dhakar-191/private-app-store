@@ -33,4 +33,15 @@ object StatusText {
             else -> "$installed · Up to date"
         }
     }
+
+    /** Which small picture goes next to the status. */
+    enum class Kind { NotInstalled, UpdateAvailable, UpToDate, NeedsNewerAndroid, NoRelease }
+
+    fun kind(installed: Boolean, hasRelease: Boolean, updateAvailable: Boolean, compatible: Boolean): Kind = when {
+        !hasRelease -> Kind.NoRelease
+        !compatible && (!installed || updateAvailable) -> Kind.NeedsNewerAndroid
+        updateAvailable -> Kind.UpdateAvailable
+        installed -> Kind.UpToDate
+        else -> Kind.NotInstalled
+    }
 }

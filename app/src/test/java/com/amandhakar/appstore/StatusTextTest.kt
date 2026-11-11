@@ -56,3 +56,17 @@ class StoreUpdateTextTest {
         StoreUpdateText.result("0.4.0", null, "10:42 AM"),
     )
 }
+
+class StatusKindTest {
+    private fun kind(installed: Boolean, release: Boolean = true, update: Boolean = false, ok: Boolean = true) =
+        StatusText.kind(installed, release, update, ok)
+
+    @Test fun notInstalled() = assertEquals(StatusText.Kind.NotInstalled, kind(installed = false))
+    @Test fun upToDate() = assertEquals(StatusText.Kind.UpToDate, kind(installed = true))
+    @Test fun updateAvailable() = assertEquals(StatusText.Kind.UpdateAvailable, kind(installed = true, update = true))
+    @Test fun noReleaseWins() = assertEquals(StatusText.Kind.NoRelease, kind(installed = true, release = false))
+    @Test fun tooOldAndroidWarnsWhenItCouldNotBeInstalled() =
+        assertEquals(StatusText.Kind.NeedsNewerAndroid, kind(installed = false, ok = false))
+    @Test fun anInstalledAppIsNotWarnedAboutWhenThereIsNothingToInstall() =
+        assertEquals(StatusText.Kind.UpToDate, kind(installed = true, ok = false))
+}
