@@ -34,6 +34,8 @@ data class StoreState(
     val histories: Map<String, HistoryState> = emptyMap(),
     /** Result of the last "Check for update" of the store itself, null before the first. */
     val storeCheck: StoreCheck? = null,
+    /** When the app list was last read successfully (System.currentTimeMillis), 0 before the first time. */
+    val checkedAtMillis: Long = 0,
 )
 
 /** The app page's own check of one app on GitHub. */
@@ -83,7 +85,9 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                         item
                     }
                 }
-                _state.update { it.copy(loading = false, items = items, error = loaded.notice) }
+                _state.update {
+                    it.copy(loading = false, items = items, error = loaded.notice, checkedAtMillis = System.currentTimeMillis())
+                }
             } catch (e: Exception) {
                 _state.update { it.copy(loading = false, error = e.message ?: e.toString()) }
             }

@@ -25,15 +25,27 @@ every app is a GitHub repo, every version is a release with an `.apk` attached.
    corrupted or swapped download is refused and deleted), and hands it to Android's package
    installer, which shows the normal system confirmation.
 
+### The home screen
+
+The list is grouped by what needs doing: **Updates** (the store itself first, when it has a newer
+version, then installed apps with an update this phone can run), **Installed**, and **Not
+installed**. Each app is one compact row: icon, name, one line that matters now (for an update
+"0.11.0 → 0.12.0 · 15.7 MB" and the first line of the release notes; "Up to date" with a tick; the
+description for an app not installed; "Requires Android 15 or newer" when the phone is too old) and
+one button on the right (**Update**, **Install**, **Open**). Test builds carry an amber
+**Pre-release** tag. Pull down to refresh; under the title it says when the list was last read
+("Checked 4 min ago"). The **i** button opens About. The colours are fixed (light and dark) instead
+of following the wallpaper.
+
 ### Downloads, Update all, cancel and retry
 
-While an app downloads, its card shows the step in words (Downloading, with how much of the file is
-done and a percentage; Installing, while Android asks you to confirm), a bar, and **Cancel**.
+While an app downloads, its row shows the step in words (Downloading, with how much of the file is
+done and a percentage; Installing, while Android asks you to confirm), a bar, and a cancel button.
 Cancelling stops the download and deletes the partly downloaded file. If a download fails (no
-network, or a file that doesn't match its checksum), the card says why and offers **Retry** and
+network, or a file that doesn't match its checksum), the row says why and offers **Retry** and
 **Dismiss**.
 
-When two or more apps have updates, **Update all (N)** appears at the top of the list. It goes
+When two or more apps have updates, **Update all** appears in the Updates header. It goes
 through them one after another: it downloads an app, Android asks you to confirm the install, and
 only then does the next one start. **Cancel all** stops the one running and drops the rest, and
 **Cancel** on one app takes just that app out. The store's own update isn't part of Update all,
@@ -41,18 +53,17 @@ because installing it restarts the store.
 
 ### Store updates
 
-The **⋮** menu at the top right has **Check for update** and **About**. The About page shows the
+The **i** button at the top right opens **About**. The About page shows the
 store's version and has a **Check for update** button that asks GitHub directly (one request)
 whether there is a newer store, and says what it found, including when it checked. This skips the
-release index, which can lag a few minutes. A newer release also shows the banner described below
-and an **Update store** button on the About page. The home page shows nothing extra unless there is
-an update.
+release index, which can lag a few minutes. A newer release also shows as the first row under Updates
+and an **Update store** button on the About page.
 
 On every launch and refresh, the store also checks this repo's latest release. This check
 is separate from loading the app list, so a broken catalog or app repo never hides a store
 update. If its
-tag is newer than the installed store, a **Store update available** banner appears at
-the top with the release notes and an **Update store** button. Android closes the
+tag is newer than the installed store, the store appears as the first row under **Updates** with
+the first line of its release notes and an **Update** button. Android closes the
 store while it installs the new version; open it again afterwards.
 
 The store does not need to be in `catalog.json` for this.
