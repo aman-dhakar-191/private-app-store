@@ -138,11 +138,16 @@ That page also has a ready-made GitHub Actions workflow you can copy into each a
   published as pre-releases.
 - Status: implemented; the helpers (address, sizing, history selection) have unit tests. The screen
   itself has not been checked on a device.
-- The app page and list use small icons (drawn from path data in `StoreIcons.kt`, no icon library):
-  a status icon, version / size / Android tiles, and icons on the buttons. Layout only, not
-  unit-tested; status choice (`StatusText.kind`) is.
-- The text under the name is the catalog `description`. The line below it says whether the app is
-  installed and up to date, or what the update is.
+- **The app page** has a centred icon, the name and package, a tag (Update available, Up to date, or
+  Needs a newer Android) and a Pre-release tag for test builds. Under it is one large button
+  (Install, Update, Open, or why it can't be installed; Open stays as a second button beside an
+  update), then a strip with the version, download size and lowest Android version, the
+  description, screenshots, "What's new" and the version history as a timeline. A test build also
+  gets an amber note. The colours are the fixed scheme from the home screen. Status: implemented;
+  the facts strip and tag choice (`AppFacts`, `PageStatus`) have unit tests, the layout does not and
+  has not been checked on a device.
+- The text under the name on the home screen is the catalog `description`; the line below it says
+  whether the app is installed and up to date, or what the update is.
 - Release notes are shown as plain text: markdown marks are removed, and GitHub's generated
   "What's Changed" list, "New Contributors" and "Full Changelog" link are left out when you wrote a
   note yourself. Write a short note in the release description for the best result.
