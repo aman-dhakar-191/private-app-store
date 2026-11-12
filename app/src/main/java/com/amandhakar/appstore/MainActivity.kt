@@ -703,7 +703,7 @@ private fun statusLine(item: AppItem): String = StatusText.line(
 )
 
 /** The latest release's notes as plain text, or null when there are none worth showing. */
-private fun whatsNew(item: AppItem): String? =
+internal fun whatsNew(item: AppItem): String? =
     item.release?.notes?.let { ReleaseNotes.clean(it) }?.takeIf { it.isNotBlank() }
 
 private fun canInstall(context: android.content.Context): Boolean =
