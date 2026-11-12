@@ -59,6 +59,11 @@ whether there is a newer store, and says what it found, including when it checke
 release index, which can lag a few minutes. A newer release also shows as the first row under Updates
 and an **Update store** button on the About page.
 
+The About page has the store's icon and version, an **Updates** card (the **Update store** button
+when a newer store exists, else the result of the last check and **Check for update**), and links to
+the store's releases and source. Status: implemented; the link addresses have unit tests, the layout
+does not and has not been checked on a device.
+
 On every launch and refresh, the store also checks this repo's latest release. This check
 is separate from loading the app list, so a broken catalog or app repo never hides a store
 update. If its
