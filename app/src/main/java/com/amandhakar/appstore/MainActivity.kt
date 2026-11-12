@@ -14,8 +14,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,15 +46,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -74,6 +71,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -97,19 +95,6 @@ class MainActivity : ComponentActivity() {
                 .launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
-}
-
-@Composable
-fun StoreTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
-    val context = LocalContext.current
-    val colors = when {
-        Build.VERSION.SDK_INT >= 31 && dark -> dynamicDarkColorScheme(context)
-        Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
-        dark -> darkColorScheme()
-        else -> lightColorScheme()
-    }
-    MaterialTheme(colorScheme = colors, content = content)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -179,98 +164,93 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
         return
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("App Store") },
-                actions = {
-                    IconButton(onClick = vm::refresh, enabled = !state.loading) {
-                        Icon(StoreIcons.Refresh, contentDescription = "Refresh")
-                    }
-                    var menuOpen by remember { mutableStateOf(false) }
-                    Box {
-                        IconButton(
-                            onClick = { menuOpen = true },
-                            modifier = Modifier.semantics { contentDescription = "More options" },
-                        ) { Icon(StoreIcons.MoreVert, contentDescription = null) }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Check for update") },
-                                onClick = {
-                                    menuOpen = false
-                                    showAbout = true
-                                    vm.checkStoreUpdate()
-                                },
-                            )
-                            DropdownMenuItem(
-                                text = { Text("About") },
-                                onClick = {
-                                    menuOpen = false
-                                    showAbout = true
-                                },
-                            )
+    Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
+        // Keeps "Checked 4 min ago" fresh while the screen is open.
+        val now by produceState(System.currentTimeMillis()) {
+            while (true) {
+                delay(30_000)
+                value = System.currentTimeMillis()
+            }
+        }
+        val sections = HomeGrouping.group(state.items, state.storeUpdate)
+        val pending = UpdateAll.pending(state.items)
+        PullToRefreshBox(
+            isRefreshing = state.loading,
+            onRefresh = vm::refresh,
+            modifier = Modifier.fillMaxSize().padding(padding),
+        ) {
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp)) {
+                item(key = "header") {
+                    HomeHeader(checkedText = TimeText.checked(now, state.checkedAtMillis), onAbout = { showAbout = true })
+                }
+                if (!installAllowed) {
+                    item(key = "install-permission") {
+                        Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                            InstallPermissionCard(onAllow = { askInstallPermission(context) })
                         }
                     }
-                },
-            )
-        },
-    ) { padding ->
-        // The banners always render, whatever state the app list is in.
-        LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            if (!installAllowed) {
-                item(key = "install-permission") {
-                    InstallPermissionCard(onAllow = { askInstallPermission(context) })
                 }
-            }
-            state.storeUpdate?.let { release ->
-                item(key = "store-update") {
-                    StoreUpdateBanner(release, state.storeDownload, storeActions)
-                }
-            }
-            val pending = UpdateAll.pending(state.items)
-            if (state.updateAll != null || pending.size >= 2) {
-                item(key = "update-all") {
-                    UpdateAllCard(
-                        count = pending.size,
-                        run = state.updateAll,
-                        onUpdateAll = { if (canInstall(context)) vm.updateAll() else askInstallPermission(context) },
-                        onCancel = vm::cancelUpdateAll,
-                    )
-                }
-            }
-            if (state.loading && state.items.isEmpty()) {
-                item(key = "loading") {
-                    Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-            }
-            state.error?.let { error ->
-                item(key = "error") { Text(error, color = MaterialTheme.colorScheme.error) }
-            }
-            if (state.items.isEmpty() && !state.loading && state.error == null) {
-                item(key = "empty") { Text("No apps in the store yet.") }
-            }
-            val (prerelease, stable) = state.items.partition { it.app.prerelease }
-            items(stable, key = { "stable:" + it.app.packageName }) { item ->
-                AppCard(item, onOpen = { vm.openApp(item) }, actions = actionsFor(item))
-            }
-            if (prerelease.isNotEmpty()) {
-                item(key = "prerelease-header") {
-                    Column(Modifier.padding(top = 12.dp)) {
-                        Text("Pre-release", style = MaterialTheme.typography.titleMedium)
+                state.error?.let { error ->
+                    item(key = "error") {
                         Text(
-                            "Test builds. They may be unfinished or break.",
-                            style = MaterialTheme.typography.bodySmall,
+                            error,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                         )
                     }
                 }
-                items(prerelease, key = { "prerelease:" + it.app.packageName }) { item ->
-                    AppCard(item, onOpen = { vm.openApp(item) }, actions = actionsFor(item))
+                if (state.items.isEmpty() && !state.loading && state.error == null) {
+                    item(key = "empty") {
+                        Text("No apps in the store yet.", modifier = Modifier.padding(24.dp))
+                    }
+                }
+                if (sections.updates.isNotEmpty()) {
+                    item(key = "updates-header") {
+                        SectionHeader("Updates", sections.updates.size) {
+                            if (state.updateAll != null || pending.size >= 2) {
+                                UpdateAllControl(
+                                    count = pending.size,
+                                    run = state.updateAll,
+                                    onUpdateAll = { if (canInstall(context)) vm.updateAll() else askInstallPermission(context) },
+                                    onCancel = vm::cancelUpdateAll,
+                                )
+                            }
+                        }
+                    }
+                    item(key = "updates") {
+                        GroupCard {
+                            sections.updates.forEachIndexed { index, row ->
+                                if (index > 0) RowDivider()
+                                when (row) {
+                                    is HomeRow.App -> AppRow(row.item, onOpen = { vm.openApp(row.item) }, actions = actionsFor(row.item))
+                                    is HomeRow.Store -> StoreRow(row.release, state.storeDownload, storeActions, onOpen = { showAbout = true })
+                                }
+                            }
+                        }
+                    }
+                }
+                if (sections.installed.isNotEmpty()) {
+                    item(key = "installed-header") { SectionHeader("Installed", sections.installed.size) }
+                    item(key = "installed") {
+                        GroupCard {
+                            sections.installed.forEachIndexed { index, item ->
+                                if (index > 0) RowDivider()
+                                AppRow(item, onOpen = { vm.openApp(item) }, actions = actionsFor(item))
+                            }
+                        }
+                    }
+                }
+                if (sections.notInstalled.isNotEmpty()) {
+                    item(key = "not-installed-header") { SectionHeader("Not installed", sections.notInstalled.size) }
+                    item(key = "not-installed") {
+                        GroupCard {
+                            sections.notInstalled.forEachIndexed { index, item ->
+                                if (index > 0) RowDivider()
+                                AppRow(item, onOpen = { vm.openApp(item) }, actions = actionsFor(item))
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -375,81 +355,12 @@ fun AboutPage(
     }
 }
 
-@Composable
-fun StoreUpdateBanner(release: Release, download: DownloadState?, actions: DownloadActions) {
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Text("Store update available", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "Version ${release.version} (you have ${BuildConfig.VERSION_NAME})",
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            ReleaseNotes.clean(release.notes).takeIf { it.isNotBlank() }?.let { notes ->
-                Text(
-                    notes,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            if (download != null) {
-                DownloadStatus(download, actions)
-            } else {
-                Button(onClick = actions.onStart) { Text("Update store") }
-            }
-        }
-    }
-}
-
-/** One app in the list: its icon, name, a short description and status. Tapping it opens the app's page. */
-@Composable
-fun AppCard(item: AppItem, onOpen: () -> Unit, actions: DownloadActions) {
-    Card(onClick = onOpen, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                // Shows nothing (and takes no room) when the app has no icon.
-                AppIcon(item, 56.dp)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(item.app.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    if (item.app.description.isNotBlank()) {
-                        Text(
-                            item.app.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    Spacer(Modifier.height(2.dp))
-                    StatusLabel(item, MaterialTheme.typography.labelMedium)
-                }
-            }
-            whatsNew(item)?.let { notes ->
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    notes,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            AppActions(item, actions)
-        }
-    }
-}
-
 /**
  * The app's icon, rounded. An installed app shows its own icon; otherwise the icon is downloaded
  * from the store repo. With neither, nothing is drawn, which is how the list looked before icons.
  */
 @Composable
-fun AppIcon(item: AppItem, size: Dp, modifier: Modifier = Modifier) {
+fun AppIcon(item: AppItem, size: Dp, modifier: Modifier = Modifier, placeholder: Boolean = false) {
     val context = LocalContext.current
     val packageName = item.app.packageName
     val installed = remember(packageName, item.installedVersion) {
@@ -465,6 +376,18 @@ fun AppIcon(item: AppItem, size: Dp, modifier: Modifier = Modifier) {
             contentDescription = null,
             modifier = modifier.size(size).clip(RoundedCornerShape(size * 0.22f)),
         )
+    } else if (placeholder) {
+        // No icon yet (or none in the store repo): the app's first letter on a soft tile.
+        Box(
+            modifier.size(size).clip(RoundedCornerShape(size * 0.22f)).background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                item.app.name.take(1).uppercase(),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
     }
 }
 
@@ -496,38 +419,6 @@ fun DownloadStatus(state: DownloadState, actions: DownloadActions, modifier: Mod
                 } else {
                     LinearProgressIndicator(modifier = bar) // size unknown, or waiting on Android: keeps moving
                 }
-            }
-        }
-    }
-}
-
-/** At the top of the list when several apps have updates: one button for all, or where it has got to. */
-@Composable
-fun UpdateAllCard(count: Int, run: UpdateAllRun?, onUpdateAll: () -> Unit, onCancel: () -> Unit) {
-    Card(
-        Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-    ) {
-        Row(
-            Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Column(Modifier.weight(1f)) {
-                if (run == null) {
-                    Text(UpdateAll.summary(count), style = MaterialTheme.typography.titleSmall)
-                } else {
-                    Text("Updating ${minOf(run.done + 1, run.total)} of ${run.total}", style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        "Android asks you to confirm each one.",
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-            if (run == null) {
-                Button(onClick = onUpdateAll) { Text(UpdateAll.label(count)) }
-            } else {
-                TextButton(onClick = onCancel) { Text("Cancel all") }
             }
         }
     }
@@ -812,7 +703,7 @@ private fun statusLine(item: AppItem): String = StatusText.line(
 )
 
 /** The latest release's notes as plain text, or null when there are none worth showing. */
-private fun whatsNew(item: AppItem): String? =
+internal fun whatsNew(item: AppItem): String? =
     item.release?.notes?.let { ReleaseNotes.clean(it) }?.takeIf { it.isNotBlank() }
 
 private fun canInstall(context: android.content.Context): Boolean =
