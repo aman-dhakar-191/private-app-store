@@ -277,85 +277,6 @@ fun InstallPermissionCard(onAllow: () -> Unit) {
 }
 
 /**
- * About the store: its version, a button that checks GitHub directly for a newer store (and says
- * what it found), and links. A newer store also shows the update button here.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AboutPage(
-    check: StoreCheck?,
-    update: Release?,
-    updateDownload: DownloadState?,
-    updateActions: DownloadActions,
-    onCheck: () -> Unit,
-    onBack: () -> Unit,
-) {
-    val context = LocalContext.current
-    val icon = remember { AppIcons.installed(context, context.packageName, BuildConfig.VERSION_NAME) }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("About") },
-                navigationIcon = { BackButton(onBack) },
-            )
-        },
-    ) { padding ->
-        Column(
-            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (icon != null) {
-                    Image(
-                        bitmap = icon.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.size(72.dp).clip(RoundedCornerShape(16.dp)),
-                    )
-                }
-                Column {
-                    Text("App Store", style = MaterialTheme.typography.headlineSmall)
-                    Text("Version ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            Text(
-                "A small app store for friends. The apps, and their updates, come from GitHub Releases.",
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Spacer(Modifier.height(8.dp))
-
-            if (update != null) {
-                Text("Version ${update.version} is available", style = MaterialTheme.typography.titleMedium)
-                if (updateDownload != null) {
-                    DownloadStatus(updateDownload, updateActions)
-                } else {
-                    Button(onClick = updateActions.onStart) { Text("Update store") }
-                }
-            }
-            if (check?.checking == true) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text(check.message, style = MaterialTheme.typography.bodyMedium)
-                }
-            } else {
-                OutlinedButton(onClick = onCheck) { Text("Check for update") }
-                check?.let {
-                    Text(it.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-            TextButton(onClick = {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${BuildConfig.STORE_REPO}/releases")))
-            }) { Text("Store releases on GitHub") }
-            TextButton(onClick = {
-                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/${BuildConfig.STORE_REPO}")))
-            }) { Text("Source and app list on GitHub") }
-            Text("Package ${context.packageName}", style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-/**
  * The app's icon, rounded. An installed app shows its own icon; otherwise the icon is downloaded
  * from the store repo. With neither, nothing is drawn, which is how the list looked before icons.
  */
@@ -426,12 +347,6 @@ fun DownloadStatus(state: DownloadState, actions: DownloadActions, modifier: Mod
 
 /** What the buttons under a download do: start (or retry), cancel, and clear a failure message. */
 class DownloadActions(val onStart: () -> Unit, val onCancel: () -> Unit, val onDismiss: () -> Unit)
-
-/** The Back arrow at the left of a top bar. */
-@Composable
-private fun BackButton(onBack: () -> Unit) {
-    IconButton(onClick = onBack) { Icon(StoreIcons.ArrowBack, contentDescription = "Back") }
-}
 
 /** A small icon followed by text, for buttons and headings. */
 @Composable
