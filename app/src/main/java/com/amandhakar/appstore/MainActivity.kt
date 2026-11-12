@@ -184,13 +184,15 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
             TopAppBar(
                 title = { Text("App Store") },
                 actions = {
-                    TextButton(onClick = vm::refresh, enabled = !state.loading) { Text("Refresh") }
+                    IconButton(onClick = vm::refresh, enabled = !state.loading) {
+                        Icon(StoreIcons.Refresh, contentDescription = "Refresh")
+                    }
                     var menuOpen by remember { mutableStateOf(false) }
                     Box {
                         IconButton(
                             onClick = { menuOpen = true },
                             modifier = Modifier.semantics { contentDescription = "More options" },
-                        ) { Text("\u22EE", style = MaterialTheme.typography.titleLarge) }
+                        ) { Icon(StoreIcons.MoreVert, contentDescription = null) }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                             DropdownMenuItem(
                                 text = { Text("Check for update") },
@@ -314,7 +316,7 @@ fun AboutPage(
         topBar = {
             TopAppBar(
                 title = { Text("About") },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } },
+                navigationIcon = { BackButton(onBack) },
             )
         },
     ) { padding ->
@@ -476,7 +478,7 @@ fun DownloadStatus(state: DownloadState, actions: DownloadActions, modifier: Mod
         if (state is DownloadState.Failed) {
             Text(state.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = actions.onStart) { Text("Retry") }
+                Button(onClick = actions.onStart) { IconLabel(StoreIcons.Refresh, "Retry") }
                 TextButton(onClick = actions.onDismiss) { Text("Dismiss") }
             }
         } else {
@@ -583,7 +585,7 @@ fun AppPage(
         topBar = {
             TopAppBar(
                 title = { Text(item.app.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } },
+                navigationIcon = { BackButton(onBack) },
             )
         },
     ) { padding ->
@@ -740,6 +742,12 @@ private fun VersionHistory(history: HistoryState?, onLoad: () -> Unit) {
             }
         }
     }
+}
+
+/** The Back arrow at the left of a top bar. */
+@Composable
+private fun BackButton(onBack: () -> Unit) {
+    IconButton(onClick = onBack) { Icon(StoreIcons.ArrowBack, contentDescription = "Back") }
 }
 
 /** A small icon followed by text, for buttons and headings. */
