@@ -33,6 +33,13 @@
       "repo": "aman-dhakar-191/documents-android",
       "description": "Reads PDF files. Opens them from your files or from other apps. Word and editing support are planned.",
       "minSdk": 26
+    },
+    {
+      "name": "Apkforge",
+      "package": "com.amandhakar.apkforge",
+      "repo": "aman-dhakar-191/Apkforge",
+      "description": "Inspects Android APKs on your phone: package details, file list, export. Works offline.",
+      "minSdk": 26
     }
   ],
   "prereleaseApps": [
