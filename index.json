@@ -1,0 +1,76 @@
+{
+  "releases": {
+    "aman-dhakar-191/Androvia": {
+      "apkSize": 24743734,
+      "apkUrl": "https://github.com/aman-dhakar-191/Androvia/releases/download/v1.1.0/androvia-1.1.0.apk",
+      "notes": "## What's Changed\n* Phase 3: client identity, pairing, scopes, revocation and audit by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Androvia/pull/7\n* Phase 4: MCP gateway by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Androvia/pull/8\n* Phase 4: stdio MCP bridge (mcpbridge) by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Androvia/pull/9\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/Androvia/compare/v1.0.1...v1.1.0",
+      "sha256": "e652c0506d93383ec5bc6b2fbaaa6e72936df751ff512c29dfc7622049b8b116",
+      "tag": "v1.1.0",
+      "version": "1.1.0"
+    },
+    "aman-dhakar-191/Apkforge": {
+      "apkSize": 9064309,
+      "apkUrl": "https://github.com/aman-dhakar-191/Apkforge/releases/download/v0.14.0/apkforge-0.14.0.apk",
+      "notes": "Code tab: app code first, browse by package, components marked, inner and generated classes tucked away.\n\n## What's Changed\n* Code tab: app code first, grouped by package, components marked by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Apkforge/pull/18\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/Apkforge/compare/v0.13.0...v0.14.0",
+      "sha256": "05a5ff25ef7104096d24ea30b1a321b8660de1e578fa57aaa81f39bfc49acca1",
+      "tag": "v0.14.0",
+      "version": "0.14.0"
+    },
+    "aman-dhakar-191/Mindscroll": {
+      "apkSize": 7363666,
+      "apkUrl": "https://github.com/aman-dhakar-191/Mindscroll/releases/download/v1.3.0/mindscroll-1.3.0.apk",
+      "notes": "Mo 2.0, part 1: Mo knows when to hush (quiet at night, quiet for an hour), remembers patterns you can keep or forget (What Mo remembers), checks in when you ask, and now and then brings something up on its own.\n\n## What's Changed\n* Mo 2.0, milestones 1–3: speaking policy, memory, and initiative by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Mindscroll/pull/9\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/Mindscroll/compare/v1.2.1...v1.3.0",
+      "sha256": "b17f8e4925980ea6b830558f8155999c0c53a9efcf8ddeb586850f75887092db",
+      "tag": "v1.3.0",
+      "version": "1.3.0"
+    },
+    "aman-dhakar-191/documents-android": {
+      "apkSize": 19327432,
+      "apkUrl": "https://github.com/aman-dhakar-191/documents-android/releases/download/v0.28.0/documents-0.28.0.apk",
+      "notes": "Markdown files. Documents now opens .md files: from Browse, from Open with in a file manager (Documents is now offered for Markdown and text files), and from the library under a new Markdown chip. Markdown is drawn as a document: headings, bold, italic, strikethrough, code, links you can tap, bullet, numbered, nested and task lists, quotes, code blocks, tables, rules and front matter. Source in the top bar shows the text as written, and the menu has Save as PDF, Share and Font licences. Plain .txt files open as text. Paragraph backgrounds and lines under paragraphs are now drawn in Word files too. Not done: editing Markdown, images (shown as their description, nothing is downloaded), footnotes and math. Raw HTML is shown as text, never run. Not tried on a real phone yet: please open your .md files and send screenshots.\n\n## What's Changed\n* Open Markdown (.md) and plain text files by @aman-dhakar-191 in https://github.com/aman-dhakar-191/documents-android/pull/38\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/documents-android/compare/v0.27.1...v0.28.0",
+      "sha256": "c3ad6465163a6167f166af4ee02bb1cac8538318d0eb2dcd33a2311a453b24cf",
+      "tag": "v0.28.0",
+      "version": "0.28.0"
+    },
+    "aman-dhakar-191/inkbound-jianghu": {
+      "apkSize": 51587517,
+      "apkUrl": "https://github.com/aman-dhakar-191/inkbound-jianghu/releases/download/v0.1.2/jianghu-chain-0.1.2.apk",
+      "notes": "Fixes the crash when opening the game. Voices now use the phone's default text-to-speech voice; if speech ever crashes, the next launch turns voice off and plays with subtitles.\n\n## What's Changed\n* Fix crash on start: stop asking Android for its text-to-speech voices by @aman-dhakar-191 in https://github.com/aman-dhakar-191/inkbound-jianghu/pull/3\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/inkbound-jianghu/compare/v0.1.1...v0.1.2",
+      "sha256": "b853ab36b1ff414365eea7c9ddf62439267943bc2a612d2354a1ff7ee1b0da7f",
+      "tag": "v0.1.2",
+      "version": "0.1.2"
+    },
+    "aman-dhakar-191/passkey-provider-android": {
+      "apkSize": 4316292,
+      "apkUrl": "https://github.com/aman-dhakar-191/passkey-provider-android/releases/download/v2.1.1/passkey-provider-2.1.1.apk",
+      "notes": "## What's Changed\n* Backup & recovery: allow screenshots in the GitHub build by @aman-dhakar-191 in https://github.com/aman-dhakar-191/passkey-provider-android/pull/62\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/passkey-provider-android/compare/v2.1.0...v2.1.1",
+      "sha256": "6138f3a4f708e74f571c5485cf11855a17d4f9f6191349e7bbf1b58737b1d00e",
+      "tag": "v2.1.1",
+      "version": "2.1.1"
+    },
+    "aman-dhakar-191/passkey-provider-android#cryptolab-v": {
+      "apkSize": 25538807,
+      "apkUrl": "https://github.com/aman-dhakar-191/passkey-provider-android/releases/download/cryptolab-v0.1.0/crypto-lab-0.1.0.apk",
+      "notes": "Crypto Lab: an experiment app for sending data to another phone over an encrypted channel\n(Wi-Fi or Bluetooth, paired by QR code or a 6-digit code). It is not Passkey Vault.\nMarked as a pre-release on purpose, so Passkey Vault's updater ignores it.\n\nInstall the APK on two Android 14+ phones; see cryptolab/README.md for how to try it.\n\n\n## What's Changed\n* Crypto Lab: release workflow like the demo's by @aman-dhakar-191 in https://github.com/aman-dhakar-191/passkey-provider-android/pull/55\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/passkey-provider-android/compare/demo-v1.0.3...cryptolab-v0.1.0",
+      "sha256": "99f275b62826b56799d3863015f3ab3d92563c3485547024f6aded4e77087780",
+      "tag": "cryptolab-v0.1.0",
+      "version": "0.1.0"
+    },
+    "aman-dhakar-191/passkey-provider-android#demo-v": {
+      "apkSize": 25002831,
+      "apkUrl": "https://github.com/aman-dhakar-191/passkey-provider-android/releases/download/demo-v1.0.3/passkey-demo-1.0.3.apk",
+      "notes": "Passkey Demo: a test app for trying passkeys the way other apps use them. It is not Passkey Vault.\nMarked as a pre-release on purpose, so Passkey Vault's updater ignores it.\n\n`assetlinks.json` is the file the demo's site must publish at `/.well-known/assetlinks.json`.\n\n\n## What's Changed\n* Crypto Lab: experimental app for secure phone-to-phone transfer by @aman-dhakar-191 in https://github.com/aman-dhakar-191/passkey-provider-android/pull/54\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/passkey-provider-android/compare/v1.3.8...demo-v1.0.3",
+      "sha256": "f9bf710369761f75552605a7cde8d53cce2ee1026a0584a207fde093a6e6a052",
+      "tag": "demo-v1.0.3",
+      "version": "1.0.3"
+    }
+  },
+  "store": {
+    "apkSize": 7455279,
+    "apkUrl": "https://github.com/aman-dhakar-191/private-app-store/releases/download/v0.8.0/app-store-0.8.0.apk",
+    "notes": "A new look for the whole store. The home screen groups apps into Updates, Installed and Not installed, with one clear button per app and pull-down to refresh. The app page has a big centred icon, a status tag, one large Install / Update / Open button, a version, size and Android strip, and the version history as a timeline. About has an Updates card and link rows. Pre-release apps are marked with an amber tag. Fixed colours (light and dark) replace the wallpaper-based ones. Not yet tried on a real phone, so please send screenshots of anything that looks wrong.\n\n## What's Changed\n* Redesign 1/3: home screen (grouped sections, compact rows, fixed colours, pull to refresh) by @aman-dhakar-191 in https://github.com/aman-dhakar-191/private-app-store/pull/22\n* Redesign the app page (store redesign part 2) by @aman-dhakar-191 in https://github.com/aman-dhakar-191/private-app-store/pull/23\n* Redesign About (store redesign part 3) by @aman-dhakar-191 in https://github.com/aman-dhakar-191/private-app-store/pull/24\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/private-app-store/compare/v0.7.2...v0.8.0",
+    "sha256": "ce8b352345a08d2d955d70fc477f765fcd50a6ef942e511f16c916d4a879885a",
+    "tag": "v0.8.0",
+    "version": "0.8.0"
+  }
+}
