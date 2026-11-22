@@ -58,6 +58,14 @@
       "tagPrefix": "cryptolab-v",
       "description": "Experiment app for sending messages and files to another phone over an encrypted channel (Wi-Fi or Bluetooth, paired by QR code).",
       "minSdk": 34
+    },
+    {
+      "name": "Island Lab",
+      "package": "io.github.amandhakar.islandlab",
+      "repo": "aman-dhakar-191/Mindscroll",
+      "tagPrefix": "islandlab-v",
+      "description": "Test app for the phone's own island and Live Update chip: posts sample notifications and logs what the phone allows. Not Mindscroll.",
+      "minSdk": 26
     }
   ]
 }
