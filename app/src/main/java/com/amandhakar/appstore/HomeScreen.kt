@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -22,6 +23,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,6 +54,59 @@ fun HomeHeader(checkedText: String, onAbout: () -> Unit) {
             IconButton(onClick = onAbout) { Icon(StoreIcons.Info, contentDescription = "About and settings") }
         }
     }
+}
+
+/** The Apps / Experimental switch under the header. */
+@Composable
+fun HomeTabRow(selected: HomeTab, onSelect: (HomeTab) -> Unit) {
+    TabRow(
+        selectedTabIndex = selected.ordinal,
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(horizontal = 16.dp),
+    ) {
+        HomeTab.entries.forEach { tab ->
+            Tab(
+                selected = tab == selected,
+                onClick = { onSelect(tab) },
+                text = { Text(if (tab == HomeTab.Apps) "Apps" else "Experimental") },
+            )
+        }
+    }
+}
+
+/** The amber warning at the top of the Experimental tab. */
+@Composable
+fun ExperimentalNotice(modifier: Modifier = Modifier) {
+    Surface(modifier = modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth(), shape = RoundedCornerShape(16.dp), color = storeColors.warnBackground) {
+        Row(Modifier.padding(14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+            Icon(StoreIcons.Warning, contentDescription = null, tint = storeColors.warnText, modifier = Modifier.size(20.dp))
+            Text(
+                "Experimental apps are early builds. They may be unfinished, behave unexpectedly or stop " +
+                    "working, and they haven't been tested like the apps in the Apps tab.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = storeColors.warnText,
+            )
+        }
+    }
+}
+
+/** Asked before an experimental app is installed for the first time. */
+@Composable
+fun ExperimentalInstallDialog(appName: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(StoreIcons.Warning, contentDescription = null, tint = storeColors.warnText) },
+        title = { Text("Install experimental app?") },
+        text = {
+            Text(
+                "$appName is experimental. It may be unfinished, behave unexpectedly or stop working. " +
+                    "Install it only if you're fine with that.",
+            )
+        },
+        confirmButton = { Button(onClick = onConfirm) { Text("Install anyway") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }
 
 /** A group's title and count, and what sits at its right (Update all, or where it has got to). */

@@ -27,6 +27,11 @@ data class CatalogApp(
     val icon: String = "",
     /** Optional pictures of the app: https addresses, or paths in the store repo. See IconUrls. */
     val screenshots: List<String> = emptyList(),
+    /**
+     * From "experimental": true. The app is listed in the Experimental tab instead of Apps, with a
+     * warning, and asks for confirmation before its first install. Works in either list.
+     */
+    val experimental: Boolean = false,
 )
 
 /** The latest GitHub release of an app that has an APK attached. */
@@ -114,6 +119,7 @@ object GitHub {
                 prerelease = prerelease,
                 tagPrefix = app.optString("tagPrefix").ifEmpty { "v" },
                 icon = app.optString("icon"),
+                experimental = app.optBoolean("experimental", false),
                 screenshots = (app.optJSONArray("screenshots") ?: JSONArray()).let { list ->
                     (0 until list.length()).map { list.optString(it) }.filter { it.isNotBlank() }
                 },

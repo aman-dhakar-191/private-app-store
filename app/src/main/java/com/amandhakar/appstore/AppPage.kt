@@ -101,6 +101,7 @@ fun AppPage(
                     }
                 }
             }
+            if (item.app.experimental) ExperimentalNotice()
             if (item.app.prerelease) PreReleaseBanner(Modifier.padding(horizontal = 16.dp))
             FactsStrip(item, Modifier.padding(horizontal = 16.dp))
             if (item.app.description.isNotBlank()) {
@@ -191,6 +192,7 @@ private fun Hero(item: AppItem) {
                 )
                 PageTag.None -> Unit
             }
+            if (item.app.experimental) Tag("Experimental", storeColors.warnBackground, storeColors.warnText)
             if (item.app.prerelease) Tag("Pre-release", storeColors.warnBackground, storeColors.warnText)
         }
         if (detail != null) {

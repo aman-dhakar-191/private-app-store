@@ -24,6 +24,26 @@ object HomeGrouping {
     }
 }
 
+/** The two tabs on the home screen. */
+enum class HomeTab { Apps, Experimental }
+
+/** Splits the catalog between the tabs and decides when to warn. Free of Android calls so it can be unit tested. */
+object HomeTabs {
+    /** The apps that belong in [tab], in catalog order. */
+    fun items(all: List<AppItem>, tab: HomeTab): List<AppItem> =
+        all.filter { it.app.experimental == (tab == HomeTab.Experimental) }
+
+    /** The tabs only show when there is something experimental; otherwise the home screen looks as it always did. */
+    fun showTabs(all: List<AppItem>): Boolean = all.any { it.app.experimental }
+
+    /**
+     * True when tapping Install should first ask "are you sure": an experimental app that isn't on the
+     * phone yet. Updates, and a retry after a failed install (already confirmed), go straight through.
+     */
+    fun needsWarning(item: AppItem): Boolean =
+        item.app.experimental && item.installedVersion == null && item.download == null
+}
+
 /** How a line of text under an app's name should look. */
 enum class Tone { Normal, Good, Error }
 

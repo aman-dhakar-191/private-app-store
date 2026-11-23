@@ -136,3 +136,36 @@ class TimeTextTest {
         assertEquals("Checked 4 min ago", TimeText.checked(now, now - 4 * 60_000))
     }
 }
+
+class HomeTabsTest {
+    private fun item(pkg: String, experimental: Boolean, installed: String? = null, download: DownloadState? = null) = AppItem(
+        CatalogApp(name = pkg, packageName = pkg, repo = "o/$pkg", description = "", experimental = experimental),
+        release = null,
+        installedVersion = installed,
+        download = download,
+    )
+
+    private val all = listOf(item("a", false), item("x", true), item("b", false), item("y", true))
+
+    @Test fun appsTabHoldsOnlyTheNormalApps() =
+        assertEquals(listOf("a", "b"), HomeTabs.items(all, HomeTab.Apps).map { it.app.packageName })
+
+    @Test fun experimentalTabHoldsOnlyTheExperimentalApps() =
+        assertEquals(listOf("x", "y"), HomeTabs.items(all, HomeTab.Experimental).map { it.app.packageName })
+
+    @Test fun tabsOnlyShowWhenSomethingIsExperimental() {
+        assertEquals(true, HomeTabs.showTabs(all))
+        assertEquals(false, HomeTabs.showTabs(listOf(item("a", false))))
+        assertEquals(false, HomeTabs.showTabs(emptyList()))
+    }
+
+    @Test fun installingAnExperimentalAppAsksFirst() = assertEquals(true, HomeTabs.needsWarning(item("x", true)))
+
+    @Test fun aNormalAppNeverAsks() = assertEquals(false, HomeTabs.needsWarning(item("a", false)))
+
+    @Test fun updatingAnInstalledExperimentalAppDoesNotAsk() =
+        assertEquals(false, HomeTabs.needsWarning(item("x", true, installed = "1.0")))
+
+    @Test fun retryingAFailedInstallDoesNotAskAgain() =
+        assertEquals(false, HomeTabs.needsWarning(item("x", true, download = DownloadState.Failed("no network"))))
+}
