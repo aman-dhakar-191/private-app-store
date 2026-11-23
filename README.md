@@ -180,6 +180,35 @@ appear in a separate **Pre-release** section at the bottom of the store.
 - Keep these out of `apps`. Store versions older than 0.2.0 only read `apps` and would use
   the repo's latest normal release there, which may be a different app.
 
+### Experimental apps
+
+Add `"experimental": true` to any catalog entry (in `apps` or `prereleaseApps`) to move it out of
+the main list into the store's **Experimental** tab:
+
+```json
+{
+  "name": "Crypto Lab",
+  "package": "io.github.amandhakar.cryptolab",
+  "repo": "aman-dhakar-191/passkey-provider-android",
+  "tagPrefix": "cryptolab-v",
+  "experimental": true
+}
+```
+
+- The home screen gets an **Apps** / **Experimental** tab row. It only appears when at least one
+  entry is experimental; with none, the store looks as before.
+- The Experimental tab starts with an amber warning that these are early builds. Each app's page
+  repeats it and carries an **Experimental** tag.
+- Tapping **Install** on an experimental app that isn't on the phone asks "Install experimental
+  app?" first. Updates to an app that is already installed don't ask again.
+- **Update all** only covers the tab it is pressed in, so the Apps tab never installs an
+  experimental build. The store's own update is shown on the Apps tab only.
+- `experimental` and `prereleaseApps` are independent: experimental says where the app is listed
+  and warns; `prereleaseApps` (with `tagPrefix`) says where its releases come from. Store versions
+  without this feature ignore the flag and list the app with the others.
+- Status: implemented; the tab and warning logic (`HomeTabs`) has unit tests. The layout and the
+  dialog have not been built or checked on a device.
+
 ## Releasing the store itself
 
 ### One-time setup: a signing key

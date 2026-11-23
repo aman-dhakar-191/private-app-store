@@ -228,9 +228,10 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
      * asks for its confirmation, and only when that is answered does the next one start. The
      * store's own update is not part of this, because installing it restarts the store.
      */
-    fun updateAll() {
+    fun updateAll(experimental: Boolean = false) {
         if (_state.value.updateAll != null) return
-        val todo = UpdateAll.pending(_state.value.items)
+        // Only the tab it was pressed in: "Update all" on Apps never installs an experimental build.
+        val todo = UpdateAll.pending(_state.value.items.filter { it.app.experimental == experimental })
         if (todo.isEmpty()) return
         todo.forEach { setItemDownload(it.app.packageName, DownloadState.Queued) }
         launchJob(UPDATE_ALL_KEY) {

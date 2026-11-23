@@ -116,8 +116,27 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
         }
     }
 
-    val onInstall = { item: AppItem ->
-        if (canInstall(context)) vm.install(item) else askInstallPermission(context)
+    // Which home tab is open. Kept here, above the early returns for the About and app pages, so it survives opening one.
+    var experimentalTab by rememberSaveable { mutableStateOf(false) }
+
+    // An experimental app that isn't installed yet asks "are you sure" first; the dialog is further down.
+    var warnPackage by rememberSaveable { mutableStateOf<String?>(null) }
+    val onInstall: (AppItem) -> Unit = { item ->
+        when {
+            !canInstall(context) -> askInstallPermission(context)
+            HomeTabs.needsWarning(item) -> warnPackage = item.app.packageName
+            else -> vm.install(item)
+        }
+    }
+    state.items.firstOrNull { it.app.packageName == warnPackage }?.let { item ->
+        ExperimentalInstallDialog(
+            appName = item.app.name,
+            onConfirm = {
+                warnPackage = null
+                vm.install(item)
+            },
+            onDismiss = { warnPackage = null },
+        )
     }
 
     // What the Install / Update, Cancel, Retry and Dismiss buttons of an app, and of the store, do.
@@ -172,8 +191,13 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                 value = System.currentTimeMillis()
             }
         }
-        val sections = HomeGrouping.group(state.items, state.storeUpdate)
-        val pending = UpdateAll.pending(state.items)
+        val showTabs = HomeTabs.showTabs(state.items)
+        // Falls back to Apps if the experimental apps disappear from the catalog while that tab is open.
+        val tab = if (experimentalTab && showTabs) HomeTab.Experimental else HomeTab.Apps
+        val tabItems = HomeTabs.items(state.items, tab)
+        // The store's own update belongs to the Apps tab only.
+        val sections = HomeGrouping.group(tabItems, if (tab == HomeTab.Apps) state.storeUpdate else null)
+        val pending = UpdateAll.pending(tabItems)
         PullToRefreshBox(
             isRefreshing = state.loading,
             onRefresh = vm::refresh,
@@ -182,6 +206,12 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp)) {
                 item(key = "header") {
                     HomeHeader(checkedText = TimeText.checked(now, state.checkedAtMillis), onAbout = { showAbout = true })
+                }
+                if (showTabs) {
+                    item(key = "tabs") {
+                        HomeTabRow(selected = tab, onSelect = { experimentalTab = it == HomeTab.Experimental })
+                    }
+                    if (tab == HomeTab.Experimental) item(key = "experimental-notice") { ExperimentalNotice() }
                 }
                 if (!installAllowed) {
                     item(key = "install-permission") {
@@ -200,6 +230,9 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                         )
                     }
                 }
+                if (state.items.isNotEmpty() && tabItems.isEmpty()) {
+                    item(key = "empty-tab") { Text("Nothing here yet.", modifier = Modifier.padding(24.dp)) }
+                }
                 if (state.items.isEmpty() && !state.loading && state.error == null) {
                     item(key = "empty") {
                         Text("No apps in the store yet.", modifier = Modifier.padding(24.dp))
@@ -212,7 +245,7 @@ fun StoreScreen(vm: StoreViewModel = viewModel()) {
                                 UpdateAllControl(
                                     count = pending.size,
                                     run = state.updateAll,
-                                    onUpdateAll = { if (canInstall(context)) vm.updateAll() else askInstallPermission(context) },
+                                    onUpdateAll = { if (canInstall(context)) vm.updateAll(experimental = tab == HomeTab.Experimental) else askInstallPermission(context) },
                                     onCancel = vm::cancelUpdateAll,
                                 )
                             }
