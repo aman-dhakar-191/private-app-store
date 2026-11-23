@@ -43,6 +43,14 @@
       "description": "Inspects Android APKs on your phone: package details, file list, export. Works offline.",
       "minSdk": 26,
       "experimental": true
+    },
+    {
+      "name": "Contacts",
+      "package": "io.github.amandhakar.contacts",
+      "repo": "aman-dhakar-191/Contacts",
+      "description": "Contacts, dialer, call history, incoming calls and call recording. Replaces your phone app when set as default, so try it on a spare phone first.",
+      "minSdk": 29,
+      "experimental": true
     }
   ],
   "prereleaseApps": [
