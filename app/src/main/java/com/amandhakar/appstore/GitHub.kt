@@ -204,8 +204,13 @@ object GitHub {
  * compared as text, so "1.0.0-beta" and "1.0.0" are still told apart.
  */
 fun compareVersions(a: String, b: String): Int {
-    val pa = a.split('.', '-', '+')
-    val pb = b.split('.', '-', '+')
+    // Glimpse's Android versionName uses "+<build>" while its GitHub release tag
+    // uses "-build<build>". Treat those as the same build identifier.
+    fun comparable(version: String): String =
+        version.replace(Regex("-build(\\d+)$"), "+$1")
+
+    val pa = comparable(a).split('.', '-', '+')
+    val pb = comparable(b).split('.', '-', '+')
     for (i in 0 until maxOf(pa.size, pb.size)) {
         val x = pa.getOrElse(i) { "0" }
         val y = pb.getOrElse(i) { "0" }
