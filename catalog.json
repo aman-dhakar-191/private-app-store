@@ -15,6 +15,13 @@
       "minSdk": 26
     },
     {
+      "name": "Glimpse",
+      "package": "com.glimpse.app",
+      "repo": "aman-dhakar-191/glimpse",
+      "description": "A widget-first app for two people to share real-time messages, photos and reactions from the home screen.",
+      "minSdk": 26
+    },
+    {
       "name": "Jianghu Chain",
       "package": "io.github.amandhakar.jianghuchain",
       "repo": "aman-dhakar-191/inkbound-jianghu",
