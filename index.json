@@ -1,0 +1,100 @@
+{
+  "releases": {
+    "aman-dhakar-191/Androvia": {
+      "apkSize": 24743734,
+      "apkUrl": "https://github.com/aman-dhakar-191/Androvia/releases/download/v1.1.0/androvia-1.1.0.apk",
+      "notes": "## What's Changed\n* Phase 3: client identity, pairing, scopes, revocation and audit by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Androvia/pull/7\n* Phase 4: MCP gateway by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Androvia/pull/8\n* Phase 4: stdio MCP bridge (mcpbridge) by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Androvia/pull/9\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/Androvia/compare/v1.0.1...v1.1.0",
+      "sha256": "e652c0506d93383ec5bc6b2fbaaa6e72936df751ff512c29dfc7622049b8b116",
+      "tag": "v1.1.0",
+      "version": "1.1.0"
+    },
+    "aman-dhakar-191/Apkforge": {
+      "apkSize": 9184316,
+      "apkUrl": "https://github.com/aman-dhakar-191/Apkforge/releases/download/v0.17.1/apkforge-0.17.1.apk",
+      "notes": "Fix: the Code tab no longer freezes on apps with hundreds of thousands of classes (package tree built once in the background).\n\n## What's Changed\n* Code tab: package tree built once off the main thread (fixes \"not responding\" on 228k classes) by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Apkforge/pull/22\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/Apkforge/compare/v0.17.0...v0.17.1",
+      "sha256": "dabcdbbb166d9ac3236dd502f19aa1782f1ebe977b24159e0ed8ec631778c44c",
+      "tag": "v0.17.1",
+      "version": "0.17.1"
+    },
+    "aman-dhakar-191/Contacts": {
+      "apkSize": 49228617,
+      "apkUrl": "https://github.com/aman-dhakar-191/Contacts/releases/download/v0.4.7/contacts-0.4.7.apk",
+      "notes": "Call recording: clear error messages, a Recording log in Settings > Recording test, retries at lower sample rates.",
+      "sha256": "ab04c5604325366a40b1289ac4cb5f0dad4e2c707a37f2b8caa271a00d875955",
+      "tag": "v0.4.7",
+      "version": "0.4.7"
+    },
+    "aman-dhakar-191/Mindscroll": {
+      "apkSize": 10618078,
+      "apkUrl": "https://github.com/aman-dhakar-191/Mindscroll/releases/download/v1.19.0/mindscroll-1.19.0.apk",
+      "notes": "Mo now steps aside while the phone's own island shows (Xiaomi Super Island or an Android 16 Live Update). Needs notification access: Settings, Make room for the phone's island.\n\n## What's Changed\n* Mo steps aside while the phone's own island shows by @aman-dhakar-191 in https://github.com/aman-dhakar-191/Mindscroll/pull/43\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/Mindscroll/compare/v1.18.1...v1.19.0",
+      "sha256": "e2aeca24836234c5be1fe272960c45b5828db5085200564fa990bf37063bba7f",
+      "tag": "v1.19.0",
+      "version": "1.19.0"
+    },
+    "aman-dhakar-191/Mindscroll#islandlab-v": {
+      "apkSize": 695840,
+      "apkUrl": "https://github.com/aman-dhakar-191/Mindscroll/releases/download/islandlab-v0.1.3/island-lab-0.1.3.apk",
+      "notes": "A small test app for the phone's own island / Live Update chip. It is not Mindscroll.",
+      "sha256": "9aa9809c2e44f67470ffb8396d2fc9bf8188ed8fe0e73b82fd60cce3296890b4",
+      "tag": "islandlab-v0.1.3",
+      "version": "0.1.3"
+    },
+    "aman-dhakar-191/documents-android": {
+      "apkSize": 19409972,
+      "apkUrl": "https://github.com/aman-dhakar-191/documents-android/releases/download/v0.30.1/documents-0.30.1.apk",
+      "notes": "Library: the Text chip now also lists text files received on WhatsApp and WhatsApp Business (their WhatsApp Documents folder, new and old locations).\n\n## What's Changed\n* Library: Text chip also lists WhatsApp's received documents by @aman-dhakar-191 in https://github.com/aman-dhakar-191/documents-android/pull/42\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/documents-android/compare/v0.30.0...v0.30.1",
+      "sha256": "ebd1d003327ae3b7011e10a5b412f7e7ad994c17aa2932b1a2b65562924a920d",
+      "tag": "v0.30.1",
+      "version": "0.30.1"
+    },
+    "aman-dhakar-191/glimpse": {
+      "apkSize": 5844384,
+      "apkUrl": "https://github.com/aman-dhakar-191/glimpse/releases/download/v0.57.1/Glimpse-v0.57.1.apk",
+      "notes": "## What's Changed\n* Use standard vX.Y.Z release versions by @aman-dhakar-191 in https://github.com/aman-dhakar-191/glimpse/pull/112\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/glimpse/compare/v0.57.0-build272...v0.57.1",
+      "sha256": "ab425d3f568d62a95f8825dbc232b8d44a75046328ce2626577e288da350c2de",
+      "tag": "v0.57.1",
+      "version": "0.57.1"
+    },
+    "aman-dhakar-191/inkbound-jianghu": {
+      "apkSize": 51587517,
+      "apkUrl": "https://github.com/aman-dhakar-191/inkbound-jianghu/releases/download/v0.1.2/jianghu-chain-0.1.2.apk",
+      "notes": "Fixes the crash when opening the game. Voices now use the phone's default text-to-speech voice; if speech ever crashes, the next launch turns voice off and plays with subtitles.\n\n## What's Changed\n* Fix crash on start: stop asking Android for its text-to-speech voices by @aman-dhakar-191 in https://github.com/aman-dhakar-191/inkbound-jianghu/pull/3\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/inkbound-jianghu/compare/v0.1.1...v0.1.2",
+      "sha256": "b853ab36b1ff414365eea7c9ddf62439267943bc2a612d2354a1ff7ee1b0da7f",
+      "tag": "v0.1.2",
+      "version": "0.1.2"
+    },
+    "aman-dhakar-191/passkey-provider-android": {
+      "apkSize": 5813957,
+      "apkUrl": "https://github.com/aman-dhakar-191/passkey-provider-android/releases/download/v2.2.0/passkey-provider-2.2.0.apk",
+      "notes": "**Full Changelog**: https://github.com/aman-dhakar-191/passkey-provider-android/compare/v2.1.3...v2.2.0",
+      "sha256": "ea856a76d8f586a3a42afeb1284234dcf659665365599b68f1298b4c24f60797",
+      "tag": "v2.2.0",
+      "version": "2.2.0"
+    },
+    "aman-dhakar-191/passkey-provider-android#cryptolab-v": {
+      "apkSize": 25538807,
+      "apkUrl": "https://github.com/aman-dhakar-191/passkey-provider-android/releases/download/cryptolab-v0.1.0/crypto-lab-0.1.0.apk",
+      "notes": "Crypto Lab: an experiment app for sending data to another phone over an encrypted channel\n(Wi-Fi or Bluetooth, paired by QR code or a 6-digit code). It is not Passkey Vault.\nMarked as a pre-release on purpose, so Passkey Vault's updater ignores it.\n\nInstall the APK on two Android 14+ phones; see cryptolab/README.md for how to try it.\n\n\n## What's Changed\n* Crypto Lab: release workflow like the demo's by @aman-dhakar-191 in https://github.com/aman-dhakar-191/passkey-provider-android/pull/55\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/passkey-provider-android/compare/demo-v1.0.3...cryptolab-v0.1.0",
+      "sha256": "99f275b62826b56799d3863015f3ab3d92563c3485547024f6aded4e77087780",
+      "tag": "cryptolab-v0.1.0",
+      "version": "0.1.0"
+    },
+    "aman-dhakar-191/passkey-provider-android#demo-v": {
+      "apkSize": 25002831,
+      "apkUrl": "https://github.com/aman-dhakar-191/passkey-provider-android/releases/download/demo-v1.0.3/passkey-demo-1.0.3.apk",
+      "notes": "Passkey Demo: a test app for trying passkeys the way other apps use them. It is not Passkey Vault.\nMarked as a pre-release on purpose, so Passkey Vault's updater ignores it.\n\n`assetlinks.json` is the file the demo's site must publish at `/.well-known/assetlinks.json`.\n\n\n## What's Changed\n* Crypto Lab: experimental app for secure phone-to-phone transfer by @aman-dhakar-191 in https://github.com/aman-dhakar-191/passkey-provider-android/pull/54\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/passkey-provider-android/compare/v1.3.8...demo-v1.0.3",
+      "sha256": "f9bf710369761f75552605a7cde8d53cce2ee1026a0584a207fde093a6e6a052",
+      "tag": "demo-v1.0.3",
+      "version": "1.0.3"
+    }
+  },
+  "store": {
+    "apkSize": 7455283,
+    "apkUrl": "https://github.com/aman-dhakar-191/private-app-store/releases/download/v0.9.0/app-store-0.9.0.apk",
+    "notes": "New Experimental tab. Apps flagged \"experimental\" in the catalog are listed there, under a warning, and ask for confirmation before their first install. Update all only covers the tab it is pressed in. Jianghu Chain, Androvia, Apkforge and the pre-release test apps are now experimental.\n\n## What's Changed\n* Add Apkforge to the catalog by @aman-dhakar-191 in https://github.com/aman-dhakar-191/private-app-store/pull/25\n* Add Island Lab (test app) to the pre-release apps by @aman-dhakar-191 in https://github.com/aman-dhakar-191/private-app-store/pull/26\n* Add an Experimental tab with a catalog flag and install warning by @aman-dhakar-191 in https://github.com/aman-dhakar-191/private-app-store/pull/27\n* Mark Jianghu Chain, Androvia and Apkforge as experimental by @aman-dhakar-191 in https://github.com/aman-dhakar-191/private-app-store/pull/28\n\n\n**Full Changelog**: https://github.com/aman-dhakar-191/private-app-store/compare/v0.8.0...v0.9.0",
+    "sha256": "70e5c77881ffe3d89980df2e3ca4e94f7d52edbd74023d8de1f6d3ba5ca9bdee",
+    "tag": "v0.9.0",
+    "version": "0.9.0"
+  }
+}
